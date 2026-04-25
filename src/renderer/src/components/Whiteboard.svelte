@@ -77,6 +77,9 @@
           y <= obj.y + obj.height + handleSize
         ) {
           isResizing = true
+
+          obj.preciseWidth = obj.width
+          obj.preciseHeight = obj.height
           return
         }
       }
@@ -96,6 +99,12 @@
     if (hit && activeTool === 'select') {
       selectedId = hit.id
       draggedObj = hit
+
+      // сохраняем точные координаты в момент начала движения
+      // если их еще нет в объекте, берем текущие
+      draggedObj.preciseX = draggedObj.x
+      draggedObj.preciseY = draggedObj.y
+
       return
     }
 
@@ -126,21 +135,30 @@
     if (isResizing && selectedId) {
       const obj = objects.find((o) => o.id === selectedId)
       if (obj) {
-        obj.width = snapToGrid(obj.width + e.movementX / scale)
-        obj.height = snapToGrid(obj.height + e.movementY / scale)
+        // накапливаем точное изменение размера
+        obj.preciseWidth += e.movementX / scale
+        obj.preciseHeight += e.movementX / scale
+
+        // привязываем к сетке
+        obj.width = Math.max(GRID_SIZE, snapToGrid(obj.preciseWidth))
+        obj.height = Math.max(GRID_SIZE, snapToGrid(obj.preciseHeight))
+
         objects = [...objects] // обновляем состояние
       }
       return
     }
 
     if (draggedObj) {
-      // вычисляем новую точную позицию
-      const newX = draggedObj.x + e.movementX / scale
-      const newY = draggedObj.y + e.movementY / scale
+      const s = draggedObj
 
-      // привязываем к сетке
-      draggedObj.x = snapToGrid(newX)
-      draggedObj.y = snapToGrid(newY)
+      // накапливаем точное движение мыши
+      s.preciseX += e.movementX / scale
+      s.preciseY += e.movementY / scale
+
+      // обновляем видимые координаты с привязкой к сетке
+      // теперь объект прыгнет только когда мышь пройдет порог сетки
+      draggedObj.x = snapToGrid(s.preciseX)
+      draggedObj.y = snapToGrid(s.preciseY)
 
       objects = [...objects] // триггер обновления в Svelte
     } else if (isPanning) {

@@ -7,8 +7,12 @@ export interface SceneObject {
   type: ShapeType
   x: number
   y: number
+  preciseX: number
+  preciseY: number
   width: number
   height: number
+  preciseWidth: number
+  preciseHeight: number
   color: string
   text?: string
   isSelected: boolean
