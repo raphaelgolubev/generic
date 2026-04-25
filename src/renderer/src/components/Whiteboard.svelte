@@ -34,6 +34,10 @@
     }
   }
 
+  function snapToGrid(value: number): number {
+    return Math.round(value / GRID_SIZE) * GRID_SIZE
+  }
+
   function handleWheel(e: WheelEvent): void {
     e.preventDefault()
 
@@ -91,7 +95,7 @@
 
     if (hit && activeTool === 'select') {
       selectedId = hit.id
-      draggedObj = hit as unknown as SceneObject
+      draggedObj = hit
       return
     }
 
@@ -104,8 +108,8 @@
       const newObj: SceneObject = {
         id: Date.now().toString(),
         type: activeShape,
-        x: x - 50,
-        y: y - 50,
+        x: snapToGrid(x - 50),
+        y: snapToGrid(y - 50),
         width: 100,
         height: 100,
         color: activeShape === 'sticky' ? '#fff7d1' : '#e0e0e0',
@@ -122,17 +126,22 @@
     if (isResizing && selectedId) {
       const obj = objects.find((o) => o.id === selectedId)
       if (obj) {
-        obj.width += e.movementX / scale
-        obj.height += e.movementY / scale
+        obj.width = snapToGrid(obj.width + e.movementX / scale)
+        obj.height = snapToGrid(obj.height + e.movementY / scale)
         objects = [...objects] // обновляем состояние
       }
       return
     }
 
     if (draggedObj) {
-      // двигаем объект, делим на scale, чтобы скорость не зависела от зума
-      draggedObj.x += e.movementX / scale
-      draggedObj.y += e.movementY / scale
+      // вычисляем новую точную позицию
+      const newX = draggedObj.x + e.movementX / scale
+      const newY = draggedObj.y + e.movementY / scale
+
+      // привязываем к сетке
+      draggedObj.x = snapToGrid(newX)
+      draggedObj.y = snapToGrid(newY)
+
       objects = [...objects] // триггер обновления в Svelte
     } else if (isPanning) {
       offsetX += e.movementX
