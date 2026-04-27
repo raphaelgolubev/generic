@@ -2,6 +2,8 @@ export type Tool = 'select' | 'shape' | 'eraser' | 'hand'
 
 export type ShapeType = 'sticky' | 'rect' | 'circle'
 
+export type ResizeHandle = 'tl' | 'tr' | 'bl' | 'br' | null
+
 export interface SceneObject {
   id: string
   type: ShapeType

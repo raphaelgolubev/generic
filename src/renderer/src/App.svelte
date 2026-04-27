@@ -7,9 +7,7 @@
   let activeTool: Tool = 'select'
   let previousTool: Tool = 'select'
   let activeShape: ShapeType = 'sticky'
-  let scale: number = 1 // общее состояние масштаба
-  let offsetX = 0
-  let offsetY = 0
+
   const MIN_ZOOM = 0.5
   const MAX_ZOOM = 5.5
 
@@ -35,17 +33,9 @@
 
 <main>
   <!-- передаем активный инструмент в оба компонента -->
-  <Whiteboard
-    bind:activeTool
-    bind:activeShape
-    bind:scale
-    bind:offsetX
-    bind:offsetY
-    {MAX_ZOOM}
-    {MIN_ZOOM}
-  />
+  <Whiteboard bind:activeTool bind:activeShape {MAX_ZOOM} {MIN_ZOOM} />
   <Toolbar bind:activeTool bind:activeShape />
-  <ZoomControl bind:scale bind:offsetX bind:offsetY {MAX_ZOOM} {MIN_ZOOM} />
+  <ZoomControl {MAX_ZOOM} {MIN_ZOOM} />
 </main>
 
 <style>

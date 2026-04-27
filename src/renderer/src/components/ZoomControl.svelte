@@ -1,29 +1,28 @@
 <script lang="ts">
-  export let scale: number
-  export let offsetX: number
-  export let offsetY: number
+  import { scale, offsetX, offsetY } from '../store'
+
   export let MAX_ZOOM: number
   export let MIN_ZOOM: number
 
   function resetView(): void {
-    scale = 1
-    offsetX = 0
-    offsetY = 0
+    $scale = 1
+    $offsetX = 0
+    $offsetY = 0
   }
 
   function setScale(value: number): void {
-    scale = Math.min(Math.max(MIN_ZOOM, value), MAX_ZOOM)
+    $scale = Math.min(Math.max(MIN_ZOOM, value), MAX_ZOOM)
   }
 
   function zoomIn(): void {
-    setScale(scale + 0.1)
+    setScale($scale + 0.1)
   }
   function zoomOut(): void {
-    setScale(scale - 0.1)
+    setScale($scale - 0.1)
   }
 
   // рассчитываем процент для отображения
-  $: zoomPercent = Math.round(scale * 100)
+  $: zoomPercent = Math.round($scale * 100)
 </script>
 
 <div class="zoom-control">
@@ -34,7 +33,7 @@
   <div class="controls">
     <button on:click={zoomOut} title="Zoom Out">−</button>
 
-    <input type="range" min={MIN_ZOOM} max={MAX_ZOOM} step="0.01" bind:value={scale} />
+    <input type="range" min={MIN_ZOOM} max={MAX_ZOOM} step="0.01" bind:value={$scale} />
 
     <button on:click={zoomIn} title="Zoom In">+</button>
   </div>
@@ -80,9 +79,6 @@
     border: 1px solid #e0e0e0;
     z-index: 10;
     user-select: none;
-  }
-
-  .percent {
   }
 
   button {
