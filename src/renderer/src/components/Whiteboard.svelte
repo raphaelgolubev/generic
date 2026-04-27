@@ -123,7 +123,11 @@
         height: 100,
         color: activeShape === 'sticky' ? '#fff7d1' : '#e0e0e0',
         text: 'Текст',
-        isSelected: false
+        isSelected: false,
+        preciseX: 0,
+        preciseY: 0,
+        preciseWidth: 0,
+        preciseHeight: 0
       }
       objects = [...objects, newObj]
       selectedId = newObj.id
@@ -260,6 +264,46 @@
     selectedId = null
   }
 
+  // -----EDITING TEXT
+
+  let editingId: string | null = null
+  let editX = 0
+  let editY = 0
+  let editW = 0
+  let editH = 0
+  let textareaRef: HTMLTextAreaElement
+
+  function startEditing(obj: SceneObject): void {
+    editingId = obj.id
+    // Фиксируем координаты на момент начала редактирования
+    editX = obj.x
+    editY = obj.y
+    editW = obj.width
+    editH = obj.height
+
+    // Фокусируемся на textarea после того, как Svelte его отрисует
+    setTimeout(() => textareaRef?.focus(), 0)
+  }
+
+  function stopEditing(): void {
+    editingId = null
+  }
+
+  function handleDblClick(e: MouseEvent): void {
+    const { x, y } = screenToWorld(e.clientX, e.clientY)
+
+    // Ищем, по какому объекту кликнули
+    const hit = [...objects]
+      .reverse()
+      .find((obj) => x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height)
+
+    if (hit) {
+      startEditing(hit)
+    }
+  }
+
+  // ----- EDITING TEXT
+
   onMount(() => {
     ctx = canvas.getContext('2d')!
     const resize = (): void => {
@@ -294,7 +338,35 @@
     on:mouseup={handleMouseUp}
     on:mouseleave={handleMouseUp}
     on:wheel|preventDefault={handleWheel}
+    on:dblclick={handleDblClick}
   ></canvas>
+
+  {#if editingId}
+    {@const obj = objects.find((o) => o.id === editingId)}
+    {#if obj}
+      <div
+        class="floating-editor"
+        style="
+        left: {obj.x * scale + offsetX}px; 
+        top: {(obj.y + obj.height) * scale + offsetY + 10}px; 
+      "
+      >
+        <textarea
+          bind:this={textareaRef}
+          bind:value={obj.text}
+          placeholder="Напишите что-нибудь..."
+          on:blur={stopEditing}
+          on:keydown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              stopEditing()
+            }
+            if (e.key === 'Escape') stopEditing()
+          }}
+        ></textarea>
+      </div>
+    {/if}
+  {/if}
 
   {#if selectedId}
     {@const obj = objects.find((o) => o.id === selectedId)}
@@ -342,5 +414,54 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     pointer-events: all;
     z-index: 100;
+  }
+
+  textarea {
+    width: 100%;
+    height: 200px;
+    padding: 20px;
+    border: none;
+    outline: none;
+    font-family: sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    resize: none;
+  }
+
+  .floating-editor {
+    position: absolute;
+    z-index: 1000;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+    /* Центрируем относительно объекта по горизонтали, если нужно */
+    transform: translateX(0);
+  }
+
+  .floating-editor textarea {
+    width: 240px;
+    height: 120px;
+    padding: 12px;
+    background: white;
+    border: 2px solid #18a0fb; /* Цвет Figma */
+    border-radius: 8px;
+    outline: none;
+    resize: vertical; /* Разрешаем менять высоту только вручную */
+    font-family: sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Маленький треугольник-указатель сверху */
+  .floating-editor::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 20px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-left: 2px solid #18a0fb;
+    border-top: 2px solid #18a0fb;
+    transform: rotate(45deg);
   }
 </style>
