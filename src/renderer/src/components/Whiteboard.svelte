@@ -4,11 +4,15 @@
   import { renderScene } from '../canvasUtils'
   import { inputHandler } from '../inputHandler'
   import { objects, selectedIds, scale, offsetX, offsetY, sceneActions, GRID_SIZE } from '../store'
+  import ContextMenu from './ContextMenu.svelte'
 
   export let activeTool: Tool
   export let activeShape: ShapeType
   export let MAX_ZOOM: number
   export let MIN_ZOOM: number
+
+  let menuPos = { x: 0, y: 0 }
+  let showMenu = false
 
   let canvas: HTMLCanvasElement
   let ctx: CanvasRenderingContext2D
@@ -40,6 +44,22 @@
     )
 
     requestAnimationFrame(animate)
+  }
+
+  function handleContextMenu(e: MouseEvent): void {
+    e.preventDefault()
+    // Проверяем, кликнули ли мы по объекту (опционально)
+    const hit = inputHandler.getHitObject(e.clientX, e.clientY)
+    if (hit) {
+      // Если кликнули по новому объекту, выбираем его
+      if (!$selectedIds.includes(hit.id)) {
+        selectedIds.set([hit.id])
+      }
+      menuPos = { x: e.clientX, y: e.clientY }
+      showMenu = true
+    } else {
+      showMenu = false
+    }
   }
 
   function handleDblClick(e: MouseEvent): void {
@@ -112,12 +132,16 @@
 
 <!-- добавляем слушатели на окно для клавиатуры -->
 <svelte:window
+  on:mousedown={() => (showMenu = false)}
+  on:wheel={() => (showMenu = false)}
   on:keydown={(e) => {
     handleKeyDown(e)
     // удаляем объект, если он выбран и мы не в режиме редактирования текста
     if ((e.key === 'Delete' || e.key === 'Backspace') && $selectedIds && !editingId) {
       sceneActions.deleteSelected()
     }
+
+    if (e.key === 'Escape') showMenu = false
   }}
   on:keyup={handleKeyUp}
 />
@@ -131,7 +155,12 @@
     on:mouseleave={() => inputHandler.handleMouseUp()}
     on:wheel|preventDefault={(e) => inputHandler.handleWheel(e, MIN_ZOOM, MAX_ZOOM)}
     on:dblclick={handleDblClick}
+    on:contextmenu={handleContextMenu}
   ></canvas>
+
+  {#if showMenu}
+    <ContextMenu x={menuPos.x} y={menuPos.y} close={() => (showMenu = false)} />
+  {/if}
 
   {#if editingId}
     {@const obj = $objects.find((o) => o.id === editingId)}

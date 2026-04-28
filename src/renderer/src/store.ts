@@ -11,6 +11,18 @@ export const offsetY = writable(0)
 
 // логика обработки действий
 export const sceneActions = {
+  finalizeObject: (id: string) => {
+    objects.update((objs) =>
+      objs.map((obj) => {
+        if (obj.id !== id) return obj
+
+        // Создаем копию без временных p-свойств
+        const { pX, pY, pW, pH, ...rest } = obj as any
+        return rest as SceneObject
+      })
+    )
+  },
+
   // вспомогательная функция для перевода экранных координат в мировые
   screenToWorld(clientX: number, clientY: number): { x: number; y: number } {
     const s = get(scale)
@@ -109,5 +121,21 @@ export const sceneActions = {
         }
       })
     )
+  },
+
+  moveSelected: (direction: 'front' | 'back') => {
+    const ids = get(selectedIds)
+    if (ids.length === 0) return
+
+    objects.update((objs) => {
+      const selected = objs.filter((o) => ids.includes(o.id))
+      const remaining = objs.filter((o) => !ids.includes(o.id))
+
+      if (direction === 'front') {
+        return [...remaining, ...selected] // Перемещаем в конец массива
+      } else {
+        return [...selected, ...remaining] // Перемещаем в начало массива
+      }
+    })
   }
 }

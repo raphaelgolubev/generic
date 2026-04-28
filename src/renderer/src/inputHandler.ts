@@ -145,9 +145,14 @@ export class InputHandler {
   }
 
   handleMouseUp() {
-    // если мы закончили рисовать рамку и она была крошечной — считаем это кликом по пустоте
-    if (this.selectionStart && !this.currentMarquee) {
-      this.isPanning = true // позволяет начать панорамирование следующим кликом
+    if (this.draggedId) {
+      // Если мы тащили группу, нужно финализировать всех
+      const currentIds = get(selectedIds)
+      if (currentIds.includes(this.draggedId)) {
+        currentIds.forEach((id) => sceneActions.finalizeObject(id))
+      } else {
+        sceneActions.finalizeObject(this.draggedId)
+      }
     }
 
     this.isPanning = false
@@ -155,6 +160,7 @@ export class InputHandler {
     this.draggedId = null
     this.selectionStart = null
     this.currentMarquee = null
+    this.activeHandle = null
   }
 
   handleWheel(e: WheelEvent, minZoom: number, maxZoom: number) {
