@@ -23,26 +23,13 @@ export interface SceneObject extends BaseObject {
   text?: string
 }
 
-// export interface SceneObject {
-//   id: string
-//   type: ShapeType
-//   x: number
-//   y: number
-//   preciseX: number
-//   preciseY: number
-//   width: number
-//   height: number
-//   preciseWidth: number
-//   preciseHeight: number
-//   color: string
-//   text?: string
-//   isSelected: boolean
-// }
-
 export type ArrowHead = 'none' | 'arrow' | 'triangle' | 'dot'
+export type ArrowMode = 'straight' | 'orthogonal' | 'bezier'
 
 export interface ArrowObject extends BaseObject {
   type: 'arrow'
+  mode: ArrowMode
+  midFactor?: number // коэффициент изгиба (от 0 до 1)
   start: { x: number; y: number }
   end: { x: number; y: number }
   startHead: 'none' | 'arrow' | 'triangle'
@@ -50,16 +37,3 @@ export interface ArrowObject extends BaseObject {
 }
 
 export type CanvasObject = SceneObject | ArrowObject
-
-// export interface ArrowObject {
-//   id: string
-//   type: 'arrow'
-//   start: { x: number; y: number }
-//   end: { x: number; y: number }
-//   startHead: ArrowHead
-//   endHead: ArrowHead
-//   color: string
-//   // Опционально: id объектов, которые соединяет стрелка
-//   startAttachedId?: string
-//   endAttachedId?: string
-// }

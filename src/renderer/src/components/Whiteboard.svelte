@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import type { Tool, SceneObject, ShapeType } from '../types'
+  import type { Tool, CanvasObject, ShapeType } from '../types'
   import { renderScene } from '../canvasUtils'
   import { inputHandler } from '../inputHandler'
   import { objects, selectedIds, scale, offsetX, offsetY, sceneActions, GRID_SIZE } from '../store'
@@ -95,7 +95,7 @@
   }
 
   // -----EDITING TEXT
-  function startEditing(obj: SceneObject): void {
+  function startEditing(obj: CanvasObject): void {
     editingId = obj.id
 
     // фокусируемся на textarea после того, как Svelte его отрисует
@@ -164,7 +164,7 @@
 
   {#if editingId}
     {@const obj = $objects.find((o) => o.id === editingId)}
-    {#if obj}
+    {#if obj && obj.type != 'arrow'}
       <div
         class="floating-editor"
         style="
@@ -190,42 +190,74 @@
   {/if}
 
   {#if $selectedIds.length > 0 && !editingId}
-    <!-- берем последний выбранный объект для позиционирования попапа -->
     {@const obj = $objects.find((o) => o.id === $selectedIds[$selectedIds.length - 1])}
     {#if obj}
       <div
         class="object-popup"
         style="
-          left: {obj.x * $scale + $offsetX}px; 
-          top: {obj.y * $scale + $offsetY - 50}px;
-          transform: scale({$scale < 0.5 ? 0.8 : 1});
-        "
+        left: {(obj.type === 'arrow' ? obj.end.x : obj.x) * $scale + $offsetX}px; 
+        top: {(obj.type === 'arrow' ? obj.end.y : obj.y) * $scale + $offsetY - 60}px;
+        transform: scale({$scale < 0.5 ? 0.8 : 1});
+      "
       >
-        <!-- инпут цвета теперь может менять цвет всей группы сразу -->
-        <input
-          type="color"
-          value={obj.color}
-          on:input={(e) => {
-            const newColor = e.currentTarget.value
-            objects.update((objs) =>
-              objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, color: newColor } : o))
-            )
-          }}
-        />
-        <button on:click={() => sceneActions.deleteSelected()}>🗑️</button>
-        <select
-          value={obj.type}
-          on:change={(e) => {
-            const newType = e.currentTarget.value as ShapeType
-            objects.update((objs) =>
-              objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, type: newType } : o))
-            )
-          }}
-        >
-          <option value="sticky">Sticky</option>
-          <option value="rect">Square</option>
-          <option value="circle">Circle</option>
-        </select>
+        {#if obj.type === 'arrow'}
+          <!-- ИНТЕРФЕЙС ДЛЯ СТРЕЛКИ -->
+          <select bind:value={obj.mode} on:change={() => objects.update((objs) => objs)}>
+            <option value="straight">Straight</option>
+            <option value="orthogonal">Step</option>
+            <option value="bezier">Bezier</option>
+          </select>
+
+          <div class="divider"></div>
+
+          <!-- Наконечник начала -->
+          <select bind:value={obj.startHead} on:change={() => objects.update((objs) => objs)}>
+            <option value="none">Start: None</option>
+            <option value="arrow">Start: Arrow</option>
+            <option value="triangle">Start: Triangle</option>
+          </select>
+
+          <!-- Наконечник конца -->
+          <select bind:value={obj.endHead} on:change={() => objects.update((objs) => objs)}>
+            <option value="none">End: None</option>
+            <option value="arrow">End: Arrow</option>
+            <option value="triangle">End: Triangle</option>
+          </select>
+        {:else}
+          <!-- ИНТЕРФЕЙС ДЛЯ ФИГУР -->
+          <input
+            type="color"
+            value={obj.color}
+            on:input={(e) => {
+              const newColor = e.currentTarget.value
+              objects.update((objs) =>
+                objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, color: newColor } : o))
+              )
+            }}
+          />
+          <select
+            value={obj.type}
+            on:change={(e) => {
+              const newType = e.currentTarget.value as ShapeType
+              objects.update((objs) =>
+                objs.map((o) => {
+                  // меняем тип только если ID совпадает И это не стрелка
+                  if ($selectedIds.includes(o.id) && o.type !== 'arrow') {
+                    return { ...o, type: newType }
+                  }
+                  return o
+                })
+              )
+            }}
+          >
+            <option value="sticky">Sticky</option>
+            <option value="rect">Square</option>
+            <option value="circle">Circle</option>
+          </select>
+        {/if}
+
+        <div class="divider"></div>
+        <button on:click={() => sceneActions.deleteSelected()} title="Delete">🗑️</button>
       </div>
     {/if}
   {/if}
@@ -255,6 +287,24 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     pointer-events: all;
     z-index: 100;
+  }
+  .object-popup select {
+    border: none;
+    background: #f0f0f0;
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .object-popup select:hover {
+    background: #e0e0e0;
+  }
+
+  .divider {
+    width: 1px;
+    height: 20px;
+    background: #eee;
+    margin: 0 4px;
   }
 
   textarea {

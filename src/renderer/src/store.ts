@@ -67,6 +67,7 @@ export const sceneActions = {
     const newArrow: ArrowObject = {
       id,
       type: 'arrow',
+      mode: 'orthogonal',
       color: '#18a0fb',
       start: { x: startX, y: startY },
       end: { x: startX, y: startY },

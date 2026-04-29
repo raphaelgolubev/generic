@@ -1,25 +1,35 @@
 import type { ArrowHead, ArrowObject } from './types'
 
 export function drawArrow(ctx: CanvasRenderingContext2D, arrow: ArrowObject, scale: number) {
-  const { start, end, color, startHead, endHead } = arrow
-
+  const { start, end, color, mode } = arrow
   ctx.beginPath()
   ctx.strokeStyle = color
   ctx.lineWidth = 2 / scale
-  ctx.moveTo(start.x, start.y)
-  ctx.lineTo(end.x, end.y)
-  ctx.stroke()
+  ctx.lineJoin = 'round'
 
-  // Рисуем наконечники
-  drawArrowHead(ctx, end.x, end.y, Math.atan2(end.y - start.y, end.x - start.x), endHead, scale)
-  drawArrowHead(
-    ctx,
-    start.x,
-    start.y,
-    Math.atan2(start.y - end.y, start.x - end.x),
-    startHead,
-    scale
-  )
+  let lastAngle = 0 // Угол последнего сегмента
+
+  if (mode === 'straight') {
+    ctx.moveTo(start.x, start.y)
+    ctx.lineTo(end.x, end.y)
+    lastAngle = Math.atan2(end.y - start.y, end.x - start.x)
+  } else if (mode === 'orthogonal') {
+    const midY = start.y + (end.y - start.y) / 2
+    ctx.moveTo(start.x, start.y)
+    ctx.lineTo(start.x, midY)
+    ctx.lineTo(end.x, midY)
+    ctx.lineTo(end.x, end.y)
+    // Угол последнего вертикального отрезка
+    lastAngle = Math.atan2(end.y - midY, 0)
+  } else if (mode === 'bezier') {
+    const cpY = start.y + (end.y - start.y) * 0.5 // Упрощенная точка изгиба
+    ctx.moveTo(start.x, start.y)
+    ctx.quadraticCurveTo(start.x, end.y, end.x, end.y)
+    lastAngle = Math.atan2(0, end.x - start.x) // Для горизонтального входа
+  }
+
+  ctx.stroke()
+  drawArrowHead(ctx, end.x, end.y, lastAngle, arrow.endHead, scale)
 }
 
 function drawArrowHead(

@@ -17,23 +17,40 @@ export class InputHandler {
   getHitObject(clientX: number, clientY: number): CanvasObject | undefined {
     const { x, y } = sceneActions.screenToWorld(clientX, clientY)
     const objs = get(objects)
-    const threshold = 10 / get(scale) // порог чувствительности клика
+    const s = get(scale)
+    const threshold = 15 / s // чувствительность клика
 
     return [...objs].reverse().find((obj) => {
+      // ЛОГИКА ДЛЯ СТРЕЛОК
       if (obj.type === 'arrow') {
-        // расстояние от точки до отрезка
-        const { start, end } = obj
-        const l2 = (start.x - end.x) ** 2 + (start.y - end.y) ** 2
-        if (l2 === 0) return false
-        let t = ((x - start.x) * (end.x - start.x) + (y - start.y) * (end.y - start.y)) / l2
-        t = Math.max(0, Math.min(1, t))
-        const dist = Math.sqrt(
-          (x - (start.x + t * (end.x - start.x))) ** 2 +
-            (y - (start.y + t * (end.y - start.y))) ** 2
-        )
-        return dist < threshold
+        const { start, end, mode } = obj
+
+        if (mode === 'straight') {
+          // расстояние от точки (x,y) до отрезка
+          const l2 = (start.x - end.x) ** 2 + (start.y - end.y) ** 2
+          if (l2 === 0) return Math.hypot(x - start.x, y - start.y) < threshold
+
+          let t = ((x - start.x) * (end.x - start.x) + (y - start.y) * (end.y - start.y)) / l2
+          t = Math.max(0, Math.min(1, t))
+
+          const dist = Math.hypot(
+            x - (start.x + t * (end.x - start.x)),
+            y - (start.y + t * (end.y - start.y))
+          )
+          return dist < threshold
+        } else {
+          // для Orthogonal и Bezier проверяем близость к концам или середине изгиба
+          const midX = (start.x + end.x) / 2
+          const midY = (start.y + end.y) / 2
+          const distStart = Math.hypot(x - start.x, y - start.y)
+          const distEnd = Math.hypot(x - end.x, y - end.y)
+          const distMid = Math.hypot(x - midX, y - midY)
+
+          return distStart < threshold || distEnd < threshold || distMid < threshold
+        }
       }
 
+      // ЛОГИКА ДЛЯ ПРЯМОУГОЛЬНЫХ ФИГУР
       return x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height
     })
   }
