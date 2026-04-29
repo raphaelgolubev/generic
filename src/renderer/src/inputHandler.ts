@@ -8,6 +8,7 @@ export class InputHandler {
   private isResizing = false
   private activeHandle: ResizeHandle = null
   private isDrawingArrow: boolean = false
+  private activeArrowHandle: 'start' | 'end' | null = null
 
   private selectionStart: { x: number; y: number } | null = null
   // публичный для доступа из компонента
@@ -50,6 +51,21 @@ export class InputHandler {
 
     if (currentSelectedIds.length === 1) {
       const obj = objs.find((o) => o.id === currentSelectedIds[0])
+
+      if (obj && obj.type === 'arrow') {
+        const handleSize = 15 / s
+        // Проверяем попадание в начало или конец стрелки
+        if (Math.abs(x - obj.start.x) < handleSize && Math.abs(y - obj.start.y) < handleSize) {
+          this.activeArrowHandle = 'start'
+          this.draggedId = obj.id
+          return
+        } else if (Math.abs(x - obj.end.x) < handleSize && Math.abs(y - obj.end.y) < handleSize) {
+          this.activeArrowHandle = 'end'
+          this.draggedId = obj.id
+          return
+        }
+      }
+
       if (obj && obj.type !== 'arrow') {
         const handleSize = 15 / s
 
@@ -175,6 +191,23 @@ export class InputHandler {
       return
     }
 
+    // Логика изменения длины стрелки за концы
+    if (this.activeArrowHandle && this.draggedId) {
+      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
+      objects.update((objs) =>
+        objs.map((obj) => {
+          if (obj.id === this.draggedId && obj.type === 'arrow') {
+            return {
+              ...obj,
+              [this.activeArrowHandle as string]: { x, y } // Обновляем либо start, либо end
+            }
+          }
+          return obj
+        })
+      )
+      return
+    }
+
     if (this.isDrawingArrow && this.draggedId) {
       const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
       objects.update((objs) =>
@@ -228,6 +261,7 @@ export class InputHandler {
     this.currentMarquee = null
     this.activeHandle = null
     this.isDrawingArrow = false
+    this.activeArrowHandle = null
   }
 
   handleWheel(e: WheelEvent, minZoom: number, maxZoom: number) {
