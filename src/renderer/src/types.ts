@@ -1,4 +1,4 @@
-export type Tool = 'select' | 'shape' | 'eraser' | 'hand'
+export type Tool = 'select' | 'shape' | 'arrow' | 'eraser' | 'hand'
 
 export type ShapeType = 'sticky' | 'rect' | 'circle'
 
@@ -18,4 +18,19 @@ export interface SceneObject {
   color: string
   text?: string
   isSelected: boolean
+}
+
+export type ArrowHead = 'none' | 'arrow' | 'triangle' | 'dot'
+
+export interface ArrowObject {
+  id: string
+  type: 'arrow'
+  start: { x: number; y: number }
+  end: { x: number; y: number }
+  startHead: ArrowHead
+  endHead: ArrowHead
+  color: string
+  // Опционально: id объектов, которые соединяет стрелка
+  startAttachedId?: string
+  endAttachedId?: string
 }

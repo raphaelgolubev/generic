@@ -1,12 +1,13 @@
 import { get } from 'svelte/store'
 import { objects, selectedIds, scale, offsetX, offsetY, sceneActions } from './store'
-import type { Tool, ShapeType, SceneObject, ResizeHandle } from './types'
+import type { Tool, ShapeType, SceneObject, ResizeHandle, ArrowObject } from './types'
 
 export class InputHandler {
   private isPanning = false
   private draggedId: string | null = null
   private isResizing = false
   private activeHandle: ResizeHandle = null
+  private isDrawingArrow: boolean = false
 
   private selectionStart: { x: number; y: number } | null = null
   // публичный для доступа из компонента
@@ -86,6 +87,23 @@ export class InputHandler {
     } else if (activeTool === 'shape') {
       sceneActions.addObject(x, y, activeShape, activeShape === 'sticky' ? '#fff7d1' : '#ffffff')
     }
+
+    if (activeTool === 'arrow') {
+      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
+      const newArrow: ArrowObject = {
+        id: Date.now().toString(),
+        type: 'arrow',
+        start: { x, y },
+        end: { x, y },
+        startHead: 'none',
+        endHead: 'arrow',
+        color: '#18a0fb'
+      }
+      objects.update((objs) => [...objs, newArrow])
+      this.draggedId = newArrow.id
+      this.isDrawingArrow = true
+      return
+    }
   }
 
   handleMouseMove(e: MouseEvent) {
@@ -141,6 +159,13 @@ export class InputHandler {
           this.activeHandle
         )
       }
+    }
+
+    if (this.isDrawingArrow && this.draggedId) {
+      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
+      objects.update((objs) =>
+        objs.map((obj) => (obj.id === this.draggedId ? { ...obj, end: { x, y } } : obj))
+      )
     }
   }
 
