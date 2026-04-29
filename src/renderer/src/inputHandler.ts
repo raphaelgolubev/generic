@@ -38,6 +38,35 @@ export class InputHandler {
     })
   }
 
+  private getSnapPoint(x: number, y: number, excludeId: string | null): { x: number; y: number } {
+    const objs = get(objects)
+    const s = get(scale)
+    const snapThreshold = 20 / s // дистанция срабатывания магнита
+
+    for (const obj of objs) {
+      if (obj.type === 'arrow' || obj.id === excludeId) continue
+
+      // ьточки на серединах сторон объекта
+      const points = [
+        { x: obj.x + obj.width / 2, y: obj.y }, // Top
+        { x: obj.x + obj.width, y: obj.y + obj.height / 2 }, // Right
+        { x: obj.x + obj.width / 2, y: obj.y + obj.height }, // Bottom
+        { x: obj.x, y: obj.y + obj.height / 2 } // Left
+      ]
+
+      for (const p of points) {
+        const dist = Math.sqrt((x - p.x) ** 2 + (y - p.y) ** 2)
+        if (dist < snapThreshold) return p // магнитим к объекту
+      }
+    }
+
+    // Если рядом нет объектов, магнитим к сетке
+    return {
+      x: sceneActions.snapToGrid(x),
+      y: sceneActions.snapToGrid(y)
+    }
+  }
+
   handleMouseDown(
     e: MouseEvent,
     activeTool: Tool,
@@ -191,29 +220,34 @@ export class InputHandler {
       return
     }
 
-    // Логика изменения длины стрелки за концы
+    // рисование новой стрелки
+    if (this.isDrawingArrow && this.draggedId) {
+      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
+      const snapped = this.getSnapPoint(x, y, this.draggedId)
+
+      objects.update((objs) =>
+        objs.map((obj) =>
+          obj.id === this.draggedId && obj.type === 'arrow' ? { ...obj, end: snapped } : obj
+        )
+      )
+      return
+    }
+
+    // при растягивании существующей за концы
     if (this.activeArrowHandle && this.draggedId) {
       const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
+      const snapped = this.getSnapPoint(x, y, this.draggedId)
+
       objects.update((objs) =>
         objs.map((obj) => {
           if (obj.id === this.draggedId && obj.type === 'arrow') {
             return {
               ...obj,
-              [this.activeArrowHandle as string]: { x, y } // Обновляем либо start, либо end
+              [this.activeArrowHandle as string]: snapped
             }
           }
           return obj
         })
-      )
-      return
-    }
-
-    if (this.isDrawingArrow && this.draggedId) {
-      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
-      objects.update((objs) =>
-        objs.map((obj) =>
-          obj.id === this.draggedId && obj.type === 'arrow' ? { ...obj, end: { x, y } } : obj
-        )
       )
       return
     }
