@@ -1,6 +1,6 @@
 import { get } from 'svelte/store'
 import { objects, selectedIds, scale, offsetX, offsetY, sceneActions } from './store'
-import type { Tool, ShapeType, SceneObject, ResizeHandle, ArrowObject } from './types'
+import type { Tool, ShapeType, SceneObject, ResizeHandle, ArrowObject, CanvasObject } from './types'
 
 export class InputHandler {
   private isPanning = false
@@ -13,12 +13,28 @@ export class InputHandler {
   // публичный для доступа из компонента
   public currentMarquee: { x: number; y: number; w: number; h: number } | null = null
 
-  getHitObject(clientX: number, clientY: number): SceneObject | undefined {
+  getHitObject(clientX: number, clientY: number): CanvasObject | undefined {
     const { x, y } = sceneActions.screenToWorld(clientX, clientY)
     const objs = get(objects)
-    return [...objs]
-      .reverse()
-      .find((obj) => x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height)
+    const threshold = 10 / get(scale) // порог чувствительности клика
+
+    return [...objs].reverse().find((obj) => {
+      if (obj.type === 'arrow') {
+        // расстояние от точки до отрезка
+        const { start, end } = obj
+        const l2 = (start.x - end.x) ** 2 + (start.y - end.y) ** 2
+        if (l2 === 0) return false
+        let t = ((x - start.x) * (end.x - start.x) + (y - start.y) * (end.y - start.y)) / l2
+        t = Math.max(0, Math.min(1, t))
+        const dist = Math.sqrt(
+          (x - (start.x + t * (end.x - start.x))) ** 2 +
+            (y - (start.y + t * (end.y - start.y))) ** 2
+        )
+        return dist < threshold
+      }
+
+      return x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height
+    })
   }
 
   handleMouseDown(
@@ -34,7 +50,7 @@ export class InputHandler {
 
     if (currentSelectedIds.length === 1) {
       const obj = objs.find((o) => o.id === currentSelectedIds[0])
-      if (obj) {
+      if (obj && obj.type !== 'arrow') {
         const handleSize = 15 / s
 
         if (Math.abs(x - obj.x) < handleSize && Math.abs(y - obj.y) < handleSize)
@@ -86,24 +102,30 @@ export class InputHandler {
       }
     } else if (activeTool === 'shape') {
       sceneActions.addObject(x, y, activeShape, activeShape === 'sticky' ? '#fff7d1' : '#ffffff')
-    }
-
-    if (activeTool === 'arrow') {
-      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
-      const newArrow: ArrowObject = {
-        id: Date.now().toString(),
-        type: 'arrow',
-        start: { x, y },
-        end: { x, y },
-        startHead: 'none',
-        endHead: 'arrow',
-        color: '#18a0fb'
-      }
-      objects.update((objs) => [...objs, newArrow])
-      this.draggedId = newArrow.id
+    } else if (activeTool === 'arrow') {
+      const id = sceneActions.addArrow(x, y)
+      this.draggedId = id
       this.isDrawingArrow = true
+      selectedIds.set([id])
       return
     }
+
+    // if (activeTool === 'arrow') {
+    //   const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
+    //   const newArrow: ArrowObject = {
+    //     id: Date.now().toString(),
+    //     type: 'arrow',
+    //     start: { x, y },
+    //     end: { x, y },
+    //     startHead: 'none',
+    //     endHead: 'arrow',
+    //     color: '#18a0fb'
+    //   }
+    //   objects.update((objs) => [...objs, newArrow])
+    //   this.draggedId = newArrow.id
+    //   this.isDrawingArrow = true
+    //   return
+    // }
   }
 
   handleMouseMove(e: MouseEvent) {
@@ -124,16 +146,42 @@ export class InputHandler {
       const marquee = this.currentMarquee
       const objs = get(objects)
       const hitIds = objs
-        .filter(
-          (obj) =>
+        .filter((obj) => {
+          if (obj.type === 'arrow') {
+            // проверяем, попадают ли обе точки (start и end) в рамку
+            return (
+              obj.start.x >= marquee.x &&
+              obj.start.x <= marquee.x + marquee.w &&
+              obj.start.y >= marquee.y &&
+              obj.start.y <= marquee.y + marquee.h &&
+              obj.end.x >= marquee.x &&
+              obj.end.x <= marquee.x + marquee.w &&
+              obj.end.y >= marquee.y &&
+              obj.end.y <= marquee.y + marquee.h
+            )
+          }
+
+          // Для обычных фигур
+          return (
             obj.x < marquee.x + marquee.w &&
             obj.x + obj.width > marquee.x &&
             obj.y < marquee.y + marquee.h &&
             obj.y + obj.height > marquee.y
-        )
+          )
+        })
         .map((o) => o.id)
 
       selectedIds.set(hitIds)
+      return
+    }
+
+    if (this.isDrawingArrow && this.draggedId) {
+      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
+      objects.update((objs) =>
+        objs.map((obj) =>
+          obj.id === this.draggedId && obj.type === 'arrow' ? { ...obj, end: { x, y } } : obj
+        )
+      )
       return
     }
 
@@ -160,13 +208,6 @@ export class InputHandler {
         )
       }
     }
-
-    if (this.isDrawingArrow && this.draggedId) {
-      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
-      objects.update((objs) =>
-        objs.map((obj) => (obj.id === this.draggedId ? { ...obj, end: { x, y } } : obj))
-      )
-    }
   }
 
   handleMouseUp() {
@@ -186,6 +227,7 @@ export class InputHandler {
     this.selectionStart = null
     this.currentMarquee = null
     this.activeHandle = null
+    this.isDrawingArrow = false
   }
 
   handleWheel(e: WheelEvent, minZoom: number, maxZoom: number) {

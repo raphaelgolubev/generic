@@ -1,9 +1,9 @@
 import { writable, get } from 'svelte/store'
-import type { SceneObject, ShapeType, ResizeHandle } from './types'
+import type { CanvasObject, SceneObject, ArrowObject, ShapeType, ResizeHandle } from './types'
 
 // константы
 export const GRID_SIZE = 30
-export const objects = writable<SceneObject[]>([])
+export const objects = writable<CanvasObject[]>([])
 export const selectedIds = writable<string[]>([])
 export const scale = writable(1)
 export const offsetX = writable(0)
@@ -15,6 +15,9 @@ export const sceneActions = {
     objects.update((objs) =>
       objs.map((obj) => {
         if (obj.id !== id) return obj
+
+        // для стрелок точные накопители обычно не нужны или очищаются иначе
+        if (obj.type === 'arrow') return obj
 
         // Создаем копию без временных p-свойств
         const { pX, pY, pW, pH, ...rest } = obj as any
@@ -42,20 +45,36 @@ export const sceneActions = {
     const newObj: SceneObject = {
       id,
       type,
-      x: sceneActions.snapToGrid(x - 50),
-      y: sceneActions.snapToGrid(y - 50),
+      x: sceneActions.snapToGrid(x - 45),
+      y: sceneActions.snapToGrid(y - 45),
       width: 90,
       height: 90,
       color,
       text: 'Text',
-      isSelected: false,
-      preciseX: 0,
-      preciseY: 0,
-      preciseWidth: 0,
-      preciseHeight: 0
+      isSelected: false
+      // preciseX: 0,
+      // preciseY: 0,
+      // preciseWidth: 0,
+      // preciseHeight: 0
     }
     objects.update((objs) => [...objs, newObj])
-    selectedIds.update((ids) => [...ids, id])
+    // selectedIds.update((ids) => [...ids, id])
+    selectedIds.set([id])
+  },
+
+  addArrow: (startX: number, startY: number) => {
+    const id = Date.now().toString()
+    const newArrow: ArrowObject = {
+      id,
+      type: 'arrow',
+      color: '#18a0fb',
+      start: { x: startX, y: startY },
+      end: { x: startX, y: startY },
+      startHead: 'none',
+      endHead: 'arrow'
+    }
+    objects.update((objs) => [...objs, newArrow])
+    return id
   },
 
   deleteSelected: () => {
@@ -76,6 +95,16 @@ export const sceneActions = {
     objects.update((objs) =>
       objs.map((obj) => {
         if (obj.id !== id) return obj
+
+        // --- ЛОГИКА ДЛЯ СТРЕЛОК ---
+        if (obj.type === 'arrow') {
+          // если тянем за саму стрелку (не за концы), перемещаем целиком
+          return {
+            ...obj,
+            start: { x: obj.start.x + deltaX, y: obj.start.y + deltaY },
+            end: { x: obj.end.x + deltaX, y: obj.end.y + deltaY }
+          }
+        }
 
         const s = obj as any
         // Инициализируем "точные" накопители, если их еще нет

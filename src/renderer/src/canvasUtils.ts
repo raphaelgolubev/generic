@@ -1,10 +1,11 @@
-import type { SceneObject } from './types'
+import type { SceneObject, CanvasObject } from './types'
 import { drawObject } from './shapes'
+import { drawArrow } from './arrows'
 
 export function renderScene(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
-  objects: SceneObject[],
+  objects: CanvasObject[],
   selectedIds: string[],
   scale: number,
   offsetX: number,
@@ -26,7 +27,11 @@ export function renderScene(
   // объекты
   objects.forEach((obj) => {
     const isSelected = selectedIds.includes(obj.id)
-    drawObject(ctx, obj, isSelected, scale)
+    if (obj.type === 'arrow') {
+      drawArrow(ctx, obj, scale)
+    } else {
+      drawObject(ctx, obj, isSelected, scale)
+    }
   })
 
   // рамки выделения для всех выбранных объектов
@@ -69,28 +74,46 @@ export function drawGrid(
 
 export function drawSelection(
   ctx: CanvasRenderingContext2D,
-  obj: SceneObject,
+  obj: CanvasObject,
   scale: number
 ): void {
   ctx.save()
   ctx.strokeStyle = '#18a0fb'
   ctx.lineWidth = 2 / scale
-  ctx.strokeRect(obj.x, obj.y, obj.width, obj.height)
 
-  const hs = 8 / scale // Handle size
-  ctx.fillStyle = 'white'
+  if (obj.type === 'arrow') {
+    // --- Рамка для стрелки (только точки на концах) ---
+    const hs = 8 / scale
+    ctx.fillStyle = 'white'
 
-  const corners = [
-    { x: obj.x, y: obj.y }, // top-left
-    { x: obj.x + obj.width, y: obj.y }, // top-right
-    { x: obj.x, y: obj.y + obj.height }, // bottom-left
-    { x: obj.x + obj.width, y: obj.y + obj.height } // bottom-right
-  ]
+    const points = [obj.start, obj.end]
 
-  corners.forEach((c) => {
-    ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
-    ctx.strokeRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
-  })
+    points.forEach((p) => {
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, hs / 2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    })
+  } else {
+    // --- Рамка для прямоугольных фигур (SceneObject) ---
+    ctx.strokeRect(obj.x, obj.y, obj.width, obj.height)
+
+    const hs = 8 / scale
+    ctx.fillStyle = 'white'
+
+    const corners = [
+      { x: obj.x, y: obj.y },
+      { x: obj.x + obj.width, y: obj.y },
+      { x: obj.x, y: obj.y + obj.height },
+      { x: obj.x + obj.width, y: obj.y + obj.height }
+    ]
+
+    corners.forEach((c) => {
+      ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
+      ctx.strokeRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
+    })
+  }
+
   ctx.restore()
 }
 
