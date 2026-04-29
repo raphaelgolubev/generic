@@ -187,6 +187,23 @@
       ><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z" /><path d="M17 17L7 7" /></svg
     >
   </button>
+
+  <button
+    class:active={activeTool === 'arrow'}
+    on:click={() => (activeTool = 'arrow')}
+    title="Arrow (A)"
+  >
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+    >
+      <path d="M5 12h14M12 5l7 7-7 7" />
+    </svg>
+  </button>
 </div>
 
 <style>
