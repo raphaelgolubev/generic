@@ -1,6 +1,6 @@
 import { get } from 'svelte/store'
 import { objects, selectedIds, scale, offsetX, offsetY, sceneActions } from './store'
-import type { Tool, ShapeType, SceneObject, ResizeHandle, ArrowObject, CanvasObject } from './types'
+import type { Tool, ShapeType, ResizeHandle, CanvasObject } from './types'
 
 export class InputHandler {
   private isPanning = false
@@ -171,23 +171,6 @@ export class InputHandler {
       selectedIds.set([id])
       return
     }
-
-    // if (activeTool === 'arrow') {
-    //   const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
-    //   const newArrow: ArrowObject = {
-    //     id: Date.now().toString(),
-    //     type: 'arrow',
-    //     start: { x, y },
-    //     end: { x, y },
-    //     startHead: 'none',
-    //     endHead: 'arrow',
-    //     color: '#18a0fb'
-    //   }
-    //   objects.update((objs) => [...objs, newArrow])
-    //   this.draggedId = newArrow.id
-    //   this.isDrawingArrow = true
-    //   return
-    // }
   }
 
   handleMouseMove(e: MouseEvent) {

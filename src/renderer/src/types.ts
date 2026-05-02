@@ -29,7 +29,6 @@ export type ArrowMode = 'straight' | 'orthogonal' | 'bezier'
 export interface ArrowObject extends BaseObject {
   type: 'arrow'
   mode: ArrowMode
-  midFactor?: number // коэффициент изгиба (от 0 до 1)
   start: { x: number; y: number }
   end: { x: number; y: number }
   startHead: 'none' | 'arrow' | 'triangle'

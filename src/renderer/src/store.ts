@@ -52,13 +52,8 @@ export const sceneActions = {
       color,
       text: 'Text',
       isSelected: false
-      // preciseX: 0,
-      // preciseY: 0,
-      // preciseWidth: 0,
-      // preciseHeight: 0
     }
     objects.update((objs) => [...objs, newObj])
-    // selectedIds.update((ids) => [...ids, id])
     selectedIds.set([id])
   },
 
@@ -68,7 +63,7 @@ export const sceneActions = {
       id,
       type: 'arrow',
       mode: 'orthogonal',
-      color: '#18a0fb',
+      color: '#a7a7a7',
       start: { x: startX, y: startY },
       end: { x: startX, y: startY },
       startHead: 'none',
