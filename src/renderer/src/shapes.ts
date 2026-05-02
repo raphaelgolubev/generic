@@ -75,18 +75,35 @@ export function drawObject(
 
     const padding = 15
     const maxWidth = Math.max(10, obj.width - padding * 2)
+    const maxHeight = obj.height - padding // доступная высота
     const lineHeight = fontSize * 1.2 // расстояние между строками
 
     // получаем массив строк
-    const lines = wrapText(ctx, obj.text, maxWidth)
+    let lines = wrapText(ctx, obj.text, maxWidth)
+
+    // вычисляем обрезку для того чтобы длинный текст не выходил за границы
+    const maxLines = Math.floor(maxHeight / lineHeight)
+
+    if (lines.length > maxLines) {
+      // оставляем только те строки что влезли
+      lines = lines.slice(0, maxLines)
+
+      // берем последнюю видимую строку и заменяем последние 3 символа
+      // на троеточие
+      let lastLine = lines[lines.length - 1]
+      lines[lines.length - 1] = lastLine.slice(0, -3) + '...'
+    }
 
     // вычисляем начальную координату Y, чтобы весь блок текста был по центру
     const totalHeight = lines.length * lineHeight
     let startY = obj.y + (obj.height - totalHeight) / 2 + lineHeight / 2
 
     lines.forEach((line) => {
-      ctx.fillText(line, obj.x + obj.width / 2, startY)
-      startY += lineHeight
+      // доп проверка
+      if (startY < obj.y + obj.height - padding / 2) {
+        ctx.fillText(line, obj.x + obj.width / 2, startY)
+        startY += lineHeight
+      }
     })
 
     ctx.restore()
