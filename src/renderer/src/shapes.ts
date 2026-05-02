@@ -1,3 +1,4 @@
+import { wrapText } from './text'
 import type { SceneObject } from './types'
 
 // создает путь для стикера или прямоугольника со скруглениями
@@ -79,20 +80,7 @@ export function drawObject(
     const lineHeight = fontSize * 1.2 // расстояние между строками
 
     // получаем массив строк
-    let lines = wrapText(ctx, obj.text, maxWidth)
-
-    // вычисляем обрезку для того чтобы длинный текст не выходил за границы
-    const maxLines = Math.floor(maxHeight / lineHeight)
-
-    if (lines.length > maxLines) {
-      // оставляем только те строки что влезли
-      lines = lines.slice(0, maxLines)
-
-      // берем последнюю видимую строку и заменяем последние 3 символа
-      // на троеточие
-      let lastLine = lines[lines.length - 1]
-      lines[lines.length - 1] = lastLine.slice(0, -3) + '...'
-    }
+    let lines = wrapText(ctx, obj.text, maxWidth, maxHeight, lineHeight)
 
     // вычисляем начальную координату Y, чтобы весь блок текста был по центру
     const totalHeight = lines.length * lineHeight
@@ -110,48 +98,4 @@ export function drawObject(
   }
 
   ctx.restore()
-}
-
-function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
-  const paragraphs = text.split('\n')
-  const lines: string[] = []
-
-  paragraphs.forEach((paragraph) => {
-    const words = paragraph.split(' ')
-    let currentLine = ''
-
-    for (let i = 0; i < words.length; i++) {
-      let word = words[i]
-      let testLine = currentLine ? currentLine + ' ' + word : word
-      let metrics = ctx.measureText(testLine)
-
-      // если слово целиком влезает в текущую строку
-      if (metrics.width <= maxWidth) {
-        currentLine = testLine
-      }
-      // если слово не влезает, но это НЕ первое слово в строке — переносим слово целиком на новую
-      else if (currentLine !== '') {
-        lines.push(currentLine)
-        currentLine = ''
-        i-- // повторяем итерацию для этого же слова, но уже в новой строке
-      }
-      // если ОДНО слово шире всей строки — режем его посимвольно
-      else {
-        let tempWord = ''
-        for (let j = 0; j < word.length; j++) {
-          const char = word[j]
-          if (ctx.measureText(tempWord + char).width <= maxWidth) {
-            tempWord += char
-          } else {
-            lines.push(tempWord)
-            tempWord = char
-          }
-        }
-        currentLine = tempWord
-      }
-    }
-    if (currentLine) lines.push(currentLine)
-  })
-
-  return lines
 }
