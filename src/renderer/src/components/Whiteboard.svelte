@@ -162,9 +162,14 @@
     <ContextMenu x={menuPos.x} y={menuPos.y} close={() => (showMenu = false)} />
   {/if}
 
+  <!-- ЗДЕСЬ Popup для редактирования текста -->
   {#if editingId}
+    <!-- Ищем объект в массиве идентификатор которого соответствует editingId -->
+    <!-- Мы получаем editingId в функции handleDblClick -->
     {@const obj = $objects.find((o) => o.id === editingId)}
+    <!-- Если объект в массиве найден и это не стрелка -->
     {#if obj && obj.type != 'arrow'}
+      <!-- Создаем Popup -->
       <div
         class="floating-editor"
         style="
