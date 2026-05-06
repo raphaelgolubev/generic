@@ -67,7 +67,8 @@ export const sceneActions = {
       start: { x: startX, y: startY },
       end: { x: startX, y: startY },
       startHead: 'none',
-      endHead: 'arrow'
+      endHead: 'arrow',
+      orthogonalOffset: 0
     }
     objects.update((objs) => [...objs, newArrow])
     return id
@@ -94,6 +95,14 @@ export const sceneActions = {
 
         // --- ЛОГИКА ДЛЯ СТРЕЛОК ---
         if (obj.type === 'arrow') {
+          if (handle === 'edge') {
+            // двигаем только изгиб
+            return {
+              ...obj,
+              orthogonalOffset: (obj.orthogonalOffset ?? 0) + deltaY
+            }
+          }
+
           // если тянем за саму стрелку (не за концы), перемещаем целиком
           return {
             ...obj,

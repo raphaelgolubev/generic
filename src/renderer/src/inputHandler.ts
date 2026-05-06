@@ -14,43 +14,58 @@ export class InputHandler {
   // публичный для доступа из компонента
   public currentMarquee: { x: number; y: number; w: number; h: number } | null = null
 
+  // функция для проверки находится ли точка (px, py) рядом с отрезком (x1,y1)-(x2,y2)
+  isNearSegment(
+    px: number,
+    py: number,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    tol: number
+  ) {
+    const l2 = (x1 - x2) ** 2 + (y1 - y2) ** 2
+    if (l2 === 0) return Math.hypot(px - x1, py - y1) < tol
+
+    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2
+    t = Math.max(0, Math.min(1, t))
+
+    const dist = Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)))
+    return dist < tol
+  }
+
   getHitObject(clientX: number, clientY: number): CanvasObject | undefined {
     const { x, y } = sceneActions.screenToWorld(clientX, clientY)
     const objs = get(objects)
     const s = get(scale)
-    const threshold = 15 / s // чувствительность клика
+    const threshold = 15 / s
 
     return [...objs].reverse().find((obj) => {
-      // ЛОГИКА ДЛЯ СТРЕЛОК
       if (obj.type === 'arrow') {
         const { start, end, mode } = obj
 
         if (mode === 'straight') {
-          // расстояние от точки (x,y) до отрезка
-          const l2 = (start.x - end.x) ** 2 + (start.y - end.y) ** 2
-          if (l2 === 0) return Math.hypot(x - start.x, y - start.y) < threshold
-
-          let t = ((x - start.x) * (end.x - start.x) + (y - start.y) * (end.y - start.y)) / l2
-          t = Math.max(0, Math.min(1, t))
-
-          const dist = Math.hypot(
-            x - (start.x + t * (end.x - start.x)),
-            y - (start.y + t * (end.y - start.y))
-          )
-          return dist < threshold
-        } else {
-          // для Orthogonal и Bezier проверяем близость к концам или середине изгиба
-          const midX = (start.x + end.x) / 2
-          const midY = (start.y + end.y) / 2
-          const distStart = Math.hypot(x - start.x, y - start.y)
-          const distEnd = Math.hypot(x - end.x, y - end.y)
-          const distMid = Math.hypot(x - midX, y - midY)
-
-          return distStart < threshold || distEnd < threshold || distMid < threshold
+          return this.isNearSegment(x, y, start.x, start.y, end.x, end.y, threshold)
         }
+
+        if (mode === 'orthogonal') {
+          const offset = obj.orthogonalOffset || 0
+          const midY = start.y + (end.y - start.y) / 2 + offset
+
+          // проверяем все три сегмента ломаной линии
+          return (
+            this.isNearSegment(x, y, start.x, start.y, start.x, midY, threshold) || // вертикаль от старта
+            this.isNearSegment(x, y, start.x, midY, end.x, midY, threshold) || // горизонталь (перекладина)
+            this.isNearSegment(x, y, end.x, midY, end.x, end.y, threshold) // вертикаль до конца
+          )
+        }
+
+        // Для Bezier пока оставим проверку точек, пока не реализуешь расчет кривой
+        const distStart = Math.hypot(x - start.x, y - start.y)
+        const distEnd = Math.hypot(x - end.x, y - end.y)
+        return distStart < threshold || distEnd < threshold
       }
 
-      // ЛОГИКА ДЛЯ ПРЯМОУГОЛЬНЫХ ФИГУР
       return x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height
     })
   }
@@ -97,6 +112,22 @@ export class InputHandler {
 
     if (currentSelectedIds.length === 1) {
       const obj = objs.find((o) => o.id === currentSelectedIds[0])
+
+      if (obj && obj.type === 'arrow' && obj.mode === 'orthogonal') {
+        const { start, end } = obj
+        const midY = (start.y + end.y) / 2 + (obj.orthogonalOffset ?? 0)
+        const threshold = 10 / s
+
+        // проверяем попал ли клик на горизонтальный сегмент (перекладину)
+        const minX = Math.min(start.x, end.x)
+        const maxX = Math.max(start.x, end.x)
+
+        if (x >= minX && x <= maxX && Math.abs(y - midY) < threshold) {
+          this.draggedId = obj.id
+          this.activeHandle = 'edge' as any // используем кастомный тип хендла
+          return
+        }
+      }
 
       if (obj && obj.type === 'arrow') {
         const handleSize = 15 / s

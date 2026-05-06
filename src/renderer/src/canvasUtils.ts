@@ -1,4 +1,4 @@
-import type { SceneObject, CanvasObject } from './types'
+import type { CanvasObject } from './types'
 import { drawObject } from './shapes'
 import { drawArrow } from './arrows'
 
@@ -82,40 +82,99 @@ export function drawSelection(
   ctx.lineWidth = 2 / scale
 
   if (obj.type === 'arrow') {
-    // --- Рамка для стрелки (только точки на концах) ---
     const hs = 8 / scale
     ctx.fillStyle = 'white'
 
+    // рисуем крайние точки (узлы)
     const points = [obj.start, obj.end]
-
     points.forEach((p) => {
       ctx.beginPath()
       ctx.arc(p.x, p.y, hs / 2, 0, Math.PI * 2)
       ctx.fill()
       ctx.stroke()
     })
+
+    // рисуем ползунок для Orthogonal режима
+    if (obj.mode === 'orthogonal') {
+      const { start, end, orthogonalOffset = 0 } = obj
+      const midY = (start.y + end.y) / 2 + orthogonalOffset
+      const midX = (start.x + end.x) / 2
+
+      // Рисуем "капсулу" ползунка
+      const handleWidth = 20 / scale
+      const handleHeight = 6 / scale
+
+      ctx.beginPath()
+      ctx.roundRect(
+        midX - handleWidth / 2,
+        midY - handleHeight / 2,
+        handleWidth,
+        handleHeight,
+        2 / scale
+      )
+      ctx.fill()
+      ctx.stroke()
+
+      // добавим две маленькие точки внутри капсулы для красоты (как текстура)
+      ctx.fillStyle = '#18a0fb'
+      ctx.beginPath()
+      ctx.arc(midX - 4 / scale, midY, 1 / scale, 0, Math.PI * 2)
+      ctx.arc(midX + 4 / scale, midY, 1 / scale, 0, Math.PI * 2)
+      ctx.fill()
+    }
   } else {
-    // --- Рамка для прямоугольных фигур (SceneObject) ---
+    // логика для обычных фигур
     ctx.strokeRect(obj.x, obj.y, obj.width, obj.height)
-
-    const hs = 8 / scale
-    ctx.fillStyle = 'white'
-
-    const corners = [
-      { x: obj.x, y: obj.y },
-      { x: obj.x + obj.width, y: obj.y },
-      { x: obj.x, y: obj.y + obj.height },
-      { x: obj.x + obj.width, y: obj.y + obj.height }
-    ]
-
-    corners.forEach((c) => {
-      ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
-      ctx.strokeRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
-    })
+    // отрисовка угловых хендлов
   }
 
   ctx.restore()
 }
+
+// export function drawSelection(
+//   ctx: CanvasRenderingContext2D,
+//   obj: CanvasObject,
+//   scale: number
+// ): void {
+//   ctx.save()
+//   ctx.strokeStyle = '#18a0fb'
+//   ctx.lineWidth = 2 / scale
+
+//   if (obj.type === 'arrow') {
+//     // --- Рамка для стрелки (только точки на концах) ---
+//     const hs = 8 / scale
+//     ctx.fillStyle = 'white'
+
+//     const points = [obj.start, obj.end]
+
+//     points.forEach((p) => {
+//       ctx.beginPath()
+//       ctx.arc(p.x, p.y, hs / 2, 0, Math.PI * 2)
+//       ctx.fill()
+//       ctx.stroke()
+//     })
+//   } else {
+//     // --- Рамка для прямоугольных фигур (SceneObject) ---
+//     ctx.strokeRect(obj.x, obj.y, obj.width, obj.height)
+
+//     const hs = 8 / scale
+//     ctx.fillStyle = 'white'
+
+//     const corners = [
+//       { x: obj.x, y: obj.y },
+//       { x: obj.x + obj.width, y: obj.y },
+//       { x: obj.x, y: obj.y + obj.height },
+//       { x: obj.x + obj.width, y: obj.y + obj.height }
+//     ]
+
+//     corners.forEach((c) => {
+//       ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
+//       ctx.strokeRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
+//     })
+//   }
+
+//   ctx.restore()
+// }
 
 export function drawMarquee(ctx: CanvasRenderingContext2D, marquee: any, scale: number) {
   if (!marquee) return
