@@ -2,12 +2,33 @@ import { writable, get } from 'svelte/store'
 import type { CanvasObject, SceneObject, ArrowObject, ShapeType, ResizeHandle } from './types'
 
 // константы
-export const GRID_SIZE = 30
+export const MIN_ZOOM = 0.1
+export const MAX_ZOOM = 6.0
+export const GRID_SIZE = 10
 export const objects = writable<CanvasObject[]>([])
 export const selectedIds = writable<string[]>([])
 export const scale = writable(1)
 export const offsetX = writable(0)
 export const offsetY = writable(0)
+
+// чисто для дебага
+export const Mouse = {
+  mouseX: 0,
+  mouseY: 0,
+  worldMouseX: 0,
+  worldMouseY: 0
+}
+
+export const mouse = writable(Mouse)
+
+// цвета
+export const theme = {
+  accentColor: '#98fb87',
+  canvasBackgroundColor: '#fbfbfb',
+  gridDotsColor: '#e0e0e0',
+  selectionStrokeColor: '#18a0fb',
+  selectionSquareColor: 'rgba(24, 160, 251, 0.1)'
+} as const
 
 // логика обработки действий
 export const sceneActions = {
@@ -26,29 +47,19 @@ export const sceneActions = {
     )
   },
 
-  // вспомогательная функция для перевода экранных координат в мировые
-  screenToWorld(clientX: number, clientY: number): { x: number; y: number } {
-    const s = get(scale)
-    const ox = get(offsetX)
-    const oy = get(offsetY)
-
-    return {
-      x: (clientX - ox) / s,
-      y: (clientY - oy) / s
-    }
-  },
-
   snapToGrid: (value: number) => Math.round(value / GRID_SIZE) * GRID_SIZE,
 
   addObject: (x: number, y: number, type: ShapeType, color: string) => {
     const id = Date.now().toString()
+    const initialSize = GRID_SIZE * 8
+    const offset = initialSize / 2
     const newObj: SceneObject = {
       id,
       type,
-      x: sceneActions.snapToGrid(x - 45),
-      y: sceneActions.snapToGrid(y - 45),
-      width: 90,
-      height: 90,
+      x: sceneActions.snapToGrid(x - offset),
+      y: sceneActions.snapToGrid(y - offset),
+      width: initialSize,
+      height: initialSize,
       color,
       text: 'Text',
       isSelected: false
@@ -94,22 +105,7 @@ export const sceneActions = {
         if (obj.id !== id) return obj
 
         // --- ЛОГИКА ДЛЯ СТРЕЛОК ---
-        if (obj.type === 'arrow') {
-          if (handle === 'edge') {
-            // двигаем только изгиб
-            return {
-              ...obj,
-              orthogonalOffset: (obj.orthogonalOffset ?? 0) + deltaY
-            }
-          }
-
-          // если тянем за саму стрелку (не за концы), перемещаем целиком
-          return {
-            ...obj,
-            start: { x: obj.start.x + deltaX, y: obj.start.y + deltaY },
-            end: { x: obj.end.x + deltaX, y: obj.end.y + deltaY }
-          }
-        }
+        if (obj.type === 'arrow') return obj
 
         const s = obj as any
         // Инициализируем "точные" накопители, если их еще нет
@@ -118,21 +114,62 @@ export const sceneActions = {
         s.pW = s.pW ?? obj.width
         s.pH = s.pH ?? obj.height
 
+        // if (handle) {
+        //   // --- ЛОГИКА РЕЗАЙЗА ---
+        //   if (handle.includes('t')) {
+        //     s.pY += deltaY
+        //     s.pH -= deltaY
+        //   }
+        //   if (handle.includes('b')) {
+        //     s.pH += deltaY
+        //   }
+        //   if (handle.includes('l')) {
+        //     s.pX += deltaX
+        //     s.pW -= deltaX
+        //   }
+        //   if (handle.includes('r')) {
+        //     s.pW += deltaX
+        //   }
+
+        //   return {
+        //     ...obj,
+        //     x: sceneActions.snapToGrid(s.pX),
+        //     y: sceneActions.snapToGrid(s.pY),
+        //     width: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pW)),
+        //     height: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pH))
+        //   }
+        // } else {
         if (handle) {
-          // --- ЛОГИКА РЕЗАЙЗА ---
+          // --- ЛОГИКА РЕЗАЙЗА С ЗАЩИТОЙ ОТ ИНВЕРСИИ ---
+
           if (handle.includes('t')) {
-            s.pY += deltaY
-            s.pH -= deltaY
+            // вычисляем, сколько МАКСИМУМ мы можем забрать у высоты,
+            // чтобы она не стала меньше GRID_SIZE
+            const maxDeltaY = s.pH - GRID_SIZE
+            // ограничиваем дельту
+            const clampedDeltaY = Math.min(deltaY, maxDeltaY)
+
+            s.pY += clampedDeltaY
+            s.pH -= clampedDeltaY
           }
+
           if (handle.includes('b')) {
             s.pH += deltaY
+            if (s.pH < GRID_SIZE) s.pH = GRID_SIZE // защита от ухода в минус
           }
+
           if (handle.includes('l')) {
-            s.pX += deltaX
-            s.pW -= deltaX
+            // точно такое же ограничение для ширины при изменении левой границы
+            const maxDeltaX = s.pW - GRID_SIZE
+            const clampedDeltaX = Math.min(deltaX, maxDeltaX)
+
+            s.pX += clampedDeltaX
+            s.pW -= clampedDeltaX
           }
+
           if (handle.includes('r')) {
             s.pW += deltaX
+            if (s.pW < GRID_SIZE) s.pW = GRID_SIZE // защита от ухода в минус
           }
 
           return {

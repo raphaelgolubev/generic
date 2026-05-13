@@ -2,14 +2,13 @@
   import Whiteboard from './components/Whiteboard.svelte'
   import Toolbar from './components/Toolbar.svelte'
   import ZoomControl from './components/ZoomControl.svelte'
+  import DebugPanel from './components/DebugPanel.svelte'
   import type { ShapeType, Tool } from './types'
+  import { MAX_ZOOM, MIN_ZOOM } from './store'
 
   let activeTool: Tool = 'select'
   let previousTool: Tool = 'select'
   let activeShape: ShapeType = 'sticky'
-
-  const MIN_ZOOM = 0.5
-  const MAX_ZOOM = 5.5
 
   function handleKeyDown(e: KeyboardEvent): void {
     if (e.code === 'Space' && activeTool !== 'hand' && e.target === document.body) {
@@ -37,6 +36,7 @@
   <Whiteboard bind:activeTool bind:activeShape {MAX_ZOOM} {MIN_ZOOM} />
   <Toolbar bind:activeTool bind:activeShape />
   <ZoomControl {MAX_ZOOM} {MIN_ZOOM} />
+  <DebugPanel />
 </main>
 
 <style>
