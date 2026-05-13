@@ -2,6 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Electron: All",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "bun", // или "bun" / "yarn" в зависимости от твоего package.json
+      "runtimeArgs": ["run", "dev"], // запускает твой скрипт npm run dev
+      "outputCapture": "std",
+      "smartStep": true
+    },
+    {
       "name": "Debug Main Process",
       "type": "node",
       "request": "launch",
