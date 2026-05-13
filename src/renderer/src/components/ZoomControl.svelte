@@ -10,15 +10,35 @@
     $offsetY = 0
   }
 
-  function setScale(value: number): void {
-    $scale = Math.min(Math.max(MIN_ZOOM, value), MAX_ZOOM)
+  // функция плавного изменения зума с фиксацией центра экрана
+  function applyZoom(newScale: number): void {
+    const oldScale = $scale
+    // Ограничиваем масштаб по заданным рамкам
+    const clampedScale = Math.min(Math.max(MIN_ZOOM, newScale), MAX_ZOOM)
+
+    if (clampedScale === oldScale) return
+
+    // Вычисляем точку, относительно которой зумим (строго центр экрана)
+    const centerX = window.innerWidth / 2
+    const centerY = window.innerHeight / 2
+
+    // Корректируем смещение холста, чтобы центр не улетал
+    $offsetX = centerX - (centerX - $offsetX) * (clampedScale / oldScale)
+    $offsetY = centerY - (centerY - $offsetY) * (clampedScale / oldScale)
+    $scale = clampedScale
+  }
+
+  // обработчик для ползунка input range
+  function handleRangeInput(e: Event): void {
+    const target = e.target as HTMLInputElement
+    applyZoom(parseFloat(target.value))
   }
 
   function zoomIn(): void {
-    setScale($scale + 0.1)
+    applyZoom($scale * 1.25)
   }
   function zoomOut(): void {
-    setScale($scale - 0.1)
+    applyZoom($scale / 1.25)
   }
 
   // рассчитываем процент для отображения
@@ -33,7 +53,14 @@
   <div class="controls">
     <button on:click={zoomOut} title="Zoom Out">−</button>
 
-    <input type="range" min={MIN_ZOOM} max={MAX_ZOOM} step="0.01" bind:value={$scale} />
+    <input
+      type="range"
+      min={MIN_ZOOM}
+      max={MAX_ZOOM}
+      step="0.01"
+      value={$scale}
+      on:input={handleRangeInput}
+    />
 
     <button on:click={zoomIn} title="Zoom In">+</button>
   </div>
