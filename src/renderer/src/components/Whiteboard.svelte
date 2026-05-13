@@ -3,7 +3,16 @@
   import type { Tool, CanvasObject, ShapeType } from '../types'
   import { renderScene } from '../canvasUtils'
   import { inputHandler } from '../inputHandler'
-  import { objects, selectedIds, scale, offsetX, offsetY, sceneActions, GRID_SIZE } from '../store'
+  import {
+    objects,
+    selectedIds,
+    scale,
+    offsetX,
+    offsetY,
+    sceneActions,
+    GRID_SIZE,
+    theme
+  } from '../store'
   import ContextMenu from './ContextMenu.svelte'
 
   export let activeTool: Tool
@@ -13,6 +22,8 @@
 
   let menuPos = { x: 0, y: 0 }
   let showMenu = false
+
+  let isLeftMouseButtonBusy = false
 
   let canvas: HTMLCanvasElement
   let ctx: CanvasRenderingContext2D
@@ -72,6 +83,8 @@
   }
 
   function handleMouseDown(e: MouseEvent): void {
+    isLeftMouseButtonBusy = true
+
     inputHandler.handleMouseDown(e, activeTool, activeShape, isSpacePressed)
 
     // если мы только что создали объект (инструмент был shape),
@@ -79,6 +92,9 @@
     if (activeTool === 'shape') {
       activeTool = 'select'
     }
+  }
+  function handleMouseUp(): void {
+    isLeftMouseButtonBusy = false
   }
   // управление через пробел
   function handleKeyDown(e: KeyboardEvent): void {
@@ -150,12 +166,16 @@
   <canvas
     bind:this={canvas}
     on:mousedown={handleMouseDown}
+    on:mouseup={() => {
+      handleMouseUp()
+      inputHandler.handleMouseUp()
+    }}
     on:mousemove={(e) => inputHandler.handleMouseMove(e)}
-    on:mouseup={() => inputHandler.handleMouseUp()}
     on:mouseleave={() => inputHandler.handleMouseUp()}
     on:wheel|preventDefault={(e) => inputHandler.handleWheel(e, MIN_ZOOM, MAX_ZOOM)}
     on:dblclick={handleDblClick}
     on:contextmenu={handleContextMenu}
+    style:--canvas-color={theme.canvasBackgroundColor}
   ></canvas>
 
   {#if showMenu}
@@ -196,7 +216,7 @@
 
   {#if $selectedIds.length > 0 && !editingId}
     {@const obj = $objects.find((o) => o.id === $selectedIds[$selectedIds.length - 1])}
-    {#if obj}
+    {#if obj && !isLeftMouseButtonBusy}
       <div
         class="object-popup"
         style="
@@ -273,7 +293,7 @@
     display: block;
     width: 100vw;
     height: 100vh;
-    background: #fbfbfb;
+    background: var(--canvas-color);
   }
 
   .canvas-container {
