@@ -1,5 +1,5 @@
 import { get } from 'svelte/store'
-import { objects, selectedIds, scale, offsetX, offsetY, sceneActions } from './store'
+import { objects, selectedIds, scale, offsetX, offsetY, sceneActions, mouse } from './store'
 import type { Tool, ShapeType, ResizeHandle, CanvasObject } from './types'
 
 export class InputHandler {
@@ -7,12 +7,22 @@ export class InputHandler {
   private draggedId: string | null = null
   private isResizing = false
   private activeHandle: ResizeHandle = null
-  private isDrawingArrow: boolean = false
-  private activeArrowHandle: 'start' | 'end' | null = null
 
   private selectionStart: { x: number; y: number } | null = null
   // публичный для доступа из компонента
   public currentMarquee: { x: number; y: number; w: number; h: number } | null = null
+
+  // вспомогательная функция для перевода экранных координат в мировые
+  screenToWorld(clientX: number, clientY: number): { x: number; y: number } {
+    const s = get(scale)
+    const ox = get(offsetX)
+    const oy = get(offsetY)
+
+    return {
+      x: (clientX - ox) / s,
+      y: (clientY - oy) / s
+    }
+  }
 
   // функция для проверки находится ли точка (px, py) рядом с отрезком (x1,y1)-(x2,y2)
   isNearSegment(
@@ -35,38 +45,14 @@ export class InputHandler {
   }
 
   getHitObject(clientX: number, clientY: number): CanvasObject | undefined {
-    const { x, y } = sceneActions.screenToWorld(clientX, clientY)
+    const { x, y } = this.screenToWorld(clientX, clientY)
     const objs = get(objects)
     const s = get(scale)
-    const threshold = 15 / s
 
     return [...objs].reverse().find((obj) => {
-      if (obj.type === 'arrow') {
-        const { start, end, mode } = obj
-
-        if (mode === 'straight') {
-          return this.isNearSegment(x, y, start.x, start.y, end.x, end.y, threshold)
-        }
-
-        if (mode === 'orthogonal') {
-          const offset = obj.orthogonalOffset || 0
-          const midY = start.y + (end.y - start.y) / 2 + offset
-
-          // проверяем все три сегмента ломаной линии
-          return (
-            this.isNearSegment(x, y, start.x, start.y, start.x, midY, threshold) || // вертикаль от старта
-            this.isNearSegment(x, y, start.x, midY, end.x, midY, threshold) || // горизонталь (перекладина)
-            this.isNearSegment(x, y, end.x, midY, end.x, end.y, threshold) // вертикаль до конца
-          )
-        }
-
-        // Для Bezier пока оставим проверку точек, пока не реализуешь расчет кривой
-        const distStart = Math.hypot(x - start.x, y - start.y)
-        const distEnd = Math.hypot(x - end.x, y - end.y)
-        return distStart < threshold || distEnd < threshold
+      if (obj.type !== 'arrow') {
+        return x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height
       }
-
-      return x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height
     })
   }
 
@@ -78,7 +64,7 @@ export class InputHandler {
     for (const obj of objs) {
       if (obj.type === 'arrow' || obj.id === excludeId) continue
 
-      // ьточки на серединах сторон объекта
+      // точки на серединах сторон объекта
       const points = [
         { x: obj.x + obj.width / 2, y: obj.y }, // Top
         { x: obj.x + obj.width, y: obj.y + obj.height / 2 }, // Right
@@ -105,43 +91,13 @@ export class InputHandler {
     activeShape: ShapeType,
     isSpacePressed: boolean
   ) {
-    const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
+    const { x, y } = this.screenToWorld(e.clientX, e.clientY)
     const s = get(scale)
     const objs = get(objects)
     const currentSelectedIds = get(selectedIds)
 
     if (currentSelectedIds.length === 1) {
       const obj = objs.find((o) => o.id === currentSelectedIds[0])
-
-      if (obj && obj.type === 'arrow' && obj.mode === 'orthogonal') {
-        const { start, end } = obj
-        const midY = (start.y + end.y) / 2 + (obj.orthogonalOffset ?? 0)
-        const threshold = 10 / s
-
-        // проверяем попал ли клик на горизонтальный сегмент (перекладину)
-        const minX = Math.min(start.x, end.x)
-        const maxX = Math.max(start.x, end.x)
-
-        if (x >= minX && x <= maxX && Math.abs(y - midY) < threshold) {
-          this.draggedId = obj.id
-          this.activeHandle = 'edge' as any // используем кастомный тип хендла
-          return
-        }
-      }
-
-      if (obj && obj.type === 'arrow') {
-        const handleSize = 15 / s
-        // Проверяем попадание в начало или конец стрелки
-        if (Math.abs(x - obj.start.x) < handleSize && Math.abs(y - obj.start.y) < handleSize) {
-          this.activeArrowHandle = 'start'
-          this.draggedId = obj.id
-          return
-        } else if (Math.abs(x - obj.end.x) < handleSize && Math.abs(y - obj.end.y) < handleSize) {
-          this.activeArrowHandle = 'end'
-          this.draggedId = obj.id
-          return
-        }
-      }
 
       if (obj && obj.type !== 'arrow') {
         const handleSize = 15 / s
@@ -196,10 +152,7 @@ export class InputHandler {
     } else if (activeTool === 'shape') {
       sceneActions.addObject(x, y, activeShape, activeShape === 'sticky' ? '#fff7d1' : '#ffffff')
     } else if (activeTool === 'arrow') {
-      const id = sceneActions.addArrow(x, y)
-      this.draggedId = id
-      this.isDrawingArrow = true
-      selectedIds.set([id])
+      // ...
       return
     }
   }
@@ -207,9 +160,18 @@ export class InputHandler {
   handleMouseMove(e: MouseEvent) {
     const s = get(scale)
 
+    const { x, y } = this.screenToWorld(e.clientX, e.clientY)
+
+    mouse.set({
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      worldMouseX: x,
+      worldMouseY: y
+    })
+
     // логика рамки выделения
     if (this.selectionStart) {
-      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
+      // const { x, y } = this.screenToWorld(e.clientX, e.clientY)
 
       this.currentMarquee = {
         x: Math.min(x, this.selectionStart.x),
@@ -223,63 +185,19 @@ export class InputHandler {
       const objs = get(objects)
       const hitIds = objs
         .filter((obj) => {
-          if (obj.type === 'arrow') {
-            // проверяем, попадают ли обе точки (start и end) в рамку
+          if (obj.type !== 'arrow') {
+            // Для обычных фигур
             return (
-              obj.start.x >= marquee.x &&
-              obj.start.x <= marquee.x + marquee.w &&
-              obj.start.y >= marquee.y &&
-              obj.start.y <= marquee.y + marquee.h &&
-              obj.end.x >= marquee.x &&
-              obj.end.x <= marquee.x + marquee.w &&
-              obj.end.y >= marquee.y &&
-              obj.end.y <= marquee.y + marquee.h
+              obj.x < marquee.x + marquee.w &&
+              obj.x + obj.width > marquee.x &&
+              obj.y < marquee.y + marquee.h &&
+              obj.y + obj.height > marquee.y
             )
           }
-
-          // Для обычных фигур
-          return (
-            obj.x < marquee.x + marquee.w &&
-            obj.x + obj.width > marquee.x &&
-            obj.y < marquee.y + marquee.h &&
-            obj.y + obj.height > marquee.y
-          )
         })
         .map((o) => o.id)
 
       selectedIds.set(hitIds)
-      return
-    }
-
-    // рисование новой стрелки
-    if (this.isDrawingArrow && this.draggedId) {
-      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
-      const snapped = this.getSnapPoint(x, y, this.draggedId)
-
-      objects.update((objs) =>
-        objs.map((obj) =>
-          obj.id === this.draggedId && obj.type === 'arrow' ? { ...obj, end: snapped } : obj
-        )
-      )
-      return
-    }
-
-    // при растягивании существующей за концы
-    if (this.activeArrowHandle && this.draggedId) {
-      const { x, y } = sceneActions.screenToWorld(e.clientX, e.clientY)
-      const snapped = this.getSnapPoint(x, y, this.draggedId)
-
-      objects.update((objs) =>
-        objs.map((obj) => {
-          if (obj.id === this.draggedId && obj.type === 'arrow') {
-            return {
-              ...obj,
-              [this.activeArrowHandle as string]: snapped
-            }
-          }
-          return obj
-        })
-      )
       return
     }
 
@@ -292,19 +210,43 @@ export class InputHandler {
     if (this.draggedId) {
       const currentIds = get(selectedIds)
 
-      // если объект часть группы — двигаем всю группу
-      if (currentIds.includes(this.draggedId)) {
-        currentIds.forEach((id) => {
-          sceneActions.updateObject(id, e.movementX / s, e.movementY / s, this.activeHandle)
-        })
+      if (this.isResizing) {
+        if (currentIds.includes(this.draggedId)) {
+          currentIds.forEach((id) => {
+            sceneActions.updateObject(id, e.movementX / s, e.movementY / s, this.activeHandle)
+          })
+        } else {
+          sceneActions.updateObject(
+            this.draggedId,
+            e.movementX / s,
+            e.movementY / s,
+            this.activeHandle
+          )
+        }
       } else {
-        sceneActions.updateObject(
-          this.draggedId,
-          e.movementX / s,
-          e.movementY / s,
-          this.activeHandle
-        )
+        // логика обычного перемещения (panning/drag объекта)
+        if (currentIds.includes(this.draggedId)) {
+          currentIds.forEach((id) => {
+            sceneActions.updateObject(id, e.movementX / s, e.movementY / s, null)
+          })
+        } else {
+          sceneActions.updateObject(this.draggedId, e.movementX / s, e.movementY / s, null)
+        }
       }
+
+      // // если объект часть группы — двигаем всю группу
+      // if (currentIds.includes(this.draggedId)) {
+      //   currentIds.forEach((id) => {
+      //     sceneActions.updateObject(id, e.movementX / s, e.movementY / s, this.activeHandle)
+      //   })
+      // } else {
+      //   sceneActions.updateObject(
+      //     this.draggedId,
+      //     e.movementX / s,
+      //     e.movementY / s,
+      //     this.activeHandle
+      //   )
+      // }
     }
   }
 
@@ -325,8 +267,6 @@ export class InputHandler {
     this.selectionStart = null
     this.currentMarquee = null
     this.activeHandle = null
-    this.isDrawingArrow = false
-    this.activeArrowHandle = null
   }
 
   handleWheel(e: WheelEvent, minZoom: number, maxZoom: number) {
