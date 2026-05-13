@@ -1,6 +1,6 @@
-import type { CanvasObject } from './types'
+import type { CanvasObject, ResizeHandle } from './types'
 import { drawObject } from './shapes'
-import { drawArrow } from './arrows'
+import { theme } from './store'
 
 export function renderScene(
   ctx: CanvasRenderingContext2D,
@@ -11,65 +11,130 @@ export function renderScene(
   offsetX: number,
   offsetY: number,
   gridSize: number,
-  marquee: any // параметр для рамки выбора
+  marquee: any
 ): void {
   const dpr = window.devicePixelRatio || 1
 
+  // сброс и очистка
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr)
 
+  // рисуем сетку
+  drawGrid(ctx, scale, offsetX, offsetY, gridSize)
+
+  // трансформация для объеков
   ctx.translate(offsetX, offsetY)
   ctx.scale(scale, scale)
 
-  // сетка
-  drawGrid(ctx, canvas, scale, offsetX, offsetY, gridSize)
-
-  // объекты
+  // отрисовка объектов
   objects.forEach((obj) => {
     const isSelected = selectedIds.includes(obj.id)
-    if (obj.type === 'arrow') {
-      drawArrow(ctx, obj, scale)
-    } else {
+    if (obj.type !== 'arrow') {
       drawObject(ctx, obj, isSelected, scale)
     }
+    // если есть стрелки, их отрисовка должна быть тут
   })
 
-  // рамки выделения для всех выбранных объектов
+  // отрисовка UI элементов (selection, marquee)
   selectedIds.forEach((id) => {
     const obj = objects.find((o) => o.id === id)
-    if (obj) {
-      drawSelection(ctx, obj, scale)
-    }
+    if (obj) drawSelection(ctx, obj, scale)
   })
 
-  // отрисовка активной рамки выбора (marquee)
-  if (marquee) {
-    drawMarquee(ctx, marquee, scale)
-  }
+  if (marquee) drawMarquee(ctx, marquee, scale)
 }
 
 export function drawGrid(
   ctx: CanvasRenderingContext2D,
-  canvas: HTMLCanvasElement,
   scale: number,
   offsetX: number,
   offsetY: number,
   gridSize: number
 ): void {
-  ctx.fillStyle = '#e0e0e0'
-  const dotSize = 2 / scale
-  const left = -offsetX / scale
-  const top = -offsetY / scale
-  const right = left + canvas.width / scale
-  const bottom = top + canvas.height / scale
+  ctx.save()
 
-  for (let x = Math.floor(left / gridSize) * gridSize; x < right; x += gridSize) {
-    for (let y = Math.floor(top / gridSize) * gridSize; y < bottom; y += gridSize) {
-      ctx.beginPath()
-      ctx.arc(x, y, dotSize, 0, Math.PI * 2)
-      ctx.fill()
+  const dpr = window.devicePixelRatio || 1
+  // работаем в экранных пикселях
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+  let scaledStep = gridSize * scale
+  while (scaledStep < 12) scaledStep *= 2
+
+  const startX = offsetX % scaledStep
+  const startY = offsetY % scaledStep
+
+  // размер при отдалении
+  const baseRadius = 0.8
+  // максимально допустимый размер
+  const maxRadius = 4.0
+  // радуис растет пропорционально зуму но не превышает 3 пикселя
+  const radius = Math.max(baseRadius, Math.min(maxRadius, baseRadius * scale))
+
+  const opacity = 0.25 //scale > 2 ? 0.25 : 0.15
+  ctx.fillStyle = `rgba(0, 0, 0, ${opacity})`
+
+  // отрисовка точек сетки
+  ctx.beginPath() // группируем все точки в один путь для скорости
+  for (let x = startX; x < window.innerWidth; x += scaledStep) {
+    for (let y = startY; y < window.innerHeight; y += scaledStep) {
+      // Важно: Math.round для центра круга, чтобы он был четким
+      const centerX = Math.round(x)
+      const centerY = Math.round(y)
+
+      ctx.moveTo(centerX + radius, centerY)
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
     }
   }
+  ctx.fill()
+
+  ctx.restore()
+}
+
+export function drawHandler(
+  ctx: CanvasRenderingContext2D,
+  obj: CanvasObject,
+  scale: number,
+  handleType: ResizeHandle
+): void {
+  if (obj.type == 'arrow') return
+
+  // если фигура схлопнулась, не рисуем маркеры вообще, чтобы избежать краша
+  if (obj.width <= 0 || obj.height <= 0) return
+
+  // желаем радиус хэндлера
+  const visualRadius = 5
+  let radius = visualRadius / scale
+
+  // ограничение, хэндлер не должен быть больше трети
+  // мнинимальной стороны объекта
+  // чтобы не перекрывать фигуру при сильном отдалении
+
+  // защищаем от нуля берем максимум между вычисленным ограничением и 1px
+  const maxRadius = Math.max(1, Math.min(obj.width, obj.height) / 3)
+  // const maxRadius = Math.min(obj.width, obj.height) / 3
+  if (radius > maxRadius) {
+    radius = maxRadius
+  }
+
+  // изначально левый верхний угол
+  let x = obj.x
+  let y = obj.y
+
+  if (handleType == 'tr') x += obj.width // двигаем в правый верхний угол
+  if (handleType == 'br') {
+    x += obj.width
+    y += obj.height
+  } // двигаем вниз и вправо
+  if (handleType == 'bl') y += obj.height // двигаем только вниз
+
+  // рисуем
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, 2 * Math.PI)
+  ctx.fillStyle = 'white'
+  ctx.fill()
+  ctx.strokeStyle = 'red'
+  ctx.lineWidth = 1 / scale
+  ctx.stroke()
 }
 
 export function drawSelection(
@@ -77,110 +142,28 @@ export function drawSelection(
   obj: CanvasObject,
   scale: number
 ): void {
-  ctx.save()
-  ctx.strokeStyle = '#18a0fb'
-  ctx.lineWidth = 2 / scale
+  if (obj.type !== 'arrow') {
+    ctx.save()
+    ctx.strokeStyle = theme.selectionStrokeColor
+    ctx.lineWidth = 2 / scale
 
-  if (obj.type === 'arrow') {
-    const hs = 8 / scale
-    ctx.fillStyle = 'white'
-
-    // рисуем крайние точки (узлы)
-    const points = [obj.start, obj.end]
-    points.forEach((p) => {
-      ctx.beginPath()
-      ctx.arc(p.x, p.y, hs / 2, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.stroke()
-    })
-
-    // рисуем ползунок для Orthogonal режима
-    if (obj.mode === 'orthogonal') {
-      const { start, end, orthogonalOffset = 0 } = obj
-      const midY = (start.y + end.y) / 2 + orthogonalOffset
-      const midX = (start.x + end.x) / 2
-
-      // Рисуем "капсулу" ползунка
-      const handleWidth = 20 / scale
-      const handleHeight = 6 / scale
-
-      ctx.beginPath()
-      ctx.roundRect(
-        midX - handleWidth / 2,
-        midY - handleHeight / 2,
-        handleWidth,
-        handleHeight,
-        2 / scale
-      )
-      ctx.fill()
-      ctx.stroke()
-
-      // добавим две маленькие точки внутри капсулы для красоты (как текстура)
-      ctx.fillStyle = '#18a0fb'
-      ctx.beginPath()
-      ctx.arc(midX - 4 / scale, midY, 1 / scale, 0, Math.PI * 2)
-      ctx.arc(midX + 4 / scale, midY, 1 / scale, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  } else {
     // логика для обычных фигур
     ctx.strokeRect(obj.x, obj.y, obj.width, obj.height)
-    // отрисовка угловых хендлов
+    ctx.restore()
+
+    // логика отрисовки хэндлеров
+    drawHandler(ctx, obj, scale, 'tl')
+    drawHandler(ctx, obj, scale, 'tr')
+    drawHandler(ctx, obj, scale, 'br')
+    drawHandler(ctx, obj, scale, 'bl')
   }
-
-  ctx.restore()
 }
-
-// export function drawSelection(
-//   ctx: CanvasRenderingContext2D,
-//   obj: CanvasObject,
-//   scale: number
-// ): void {
-//   ctx.save()
-//   ctx.strokeStyle = '#18a0fb'
-//   ctx.lineWidth = 2 / scale
-
-//   if (obj.type === 'arrow') {
-//     // --- Рамка для стрелки (только точки на концах) ---
-//     const hs = 8 / scale
-//     ctx.fillStyle = 'white'
-
-//     const points = [obj.start, obj.end]
-
-//     points.forEach((p) => {
-//       ctx.beginPath()
-//       ctx.arc(p.x, p.y, hs / 2, 0, Math.PI * 2)
-//       ctx.fill()
-//       ctx.stroke()
-//     })
-//   } else {
-//     // --- Рамка для прямоугольных фигур (SceneObject) ---
-//     ctx.strokeRect(obj.x, obj.y, obj.width, obj.height)
-
-//     const hs = 8 / scale
-//     ctx.fillStyle = 'white'
-
-//     const corners = [
-//       { x: obj.x, y: obj.y },
-//       { x: obj.x + obj.width, y: obj.y },
-//       { x: obj.x, y: obj.y + obj.height },
-//       { x: obj.x + obj.width, y: obj.y + obj.height }
-//     ]
-
-//     corners.forEach((c) => {
-//       ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
-//       ctx.strokeRect(c.x - hs / 2, c.y - hs / 2, hs, hs)
-//     })
-//   }
-
-//   ctx.restore()
-// }
 
 export function drawMarquee(ctx: CanvasRenderingContext2D, marquee: any, scale: number) {
   if (!marquee) return
   ctx.save()
-  ctx.strokeStyle = '#18a0fb'
-  ctx.fillStyle = 'rgba(24, 160, 251, 0.1)'
+  ctx.strokeStyle = theme.selectionStrokeColor
+  ctx.fillStyle = theme.selectionSquareColor
   ctx.lineWidth = 1 / scale
   ctx.fillRect(marquee.x, marquee.y, marquee.w, marquee.h)
   ctx.strokeRect(marquee.x, marquee.y, marquee.w, marquee.h)

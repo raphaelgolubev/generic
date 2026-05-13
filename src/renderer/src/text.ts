@@ -5,6 +5,8 @@ export function wrapText(
   maxHeight: number,
   lineHeight: number
 ): string[] {
+  if (maxWidth <= 10 || maxHeight <= 10 || lineHeight <= 0) return []
+
   const paragraphs = text.split('\n')
   const lines: string[] = []
   const maxLines = Math.floor(maxHeight / lineHeight)
