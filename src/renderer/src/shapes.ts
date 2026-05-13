@@ -28,22 +28,22 @@ export function drawObject(
   ctx.save()
 
   // общие настройки тени
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.1)'
-  ctx.shadowBlur = 10 / scale
-  ctx.shadowOffsetY = 4 / scale
+  // ctx.shadowColor = 'rgba(23, 209, 159, 0.76)'
+  // ctx.shadowBlur = 10 / scale
+  // ctx.shadowOffsetY = 4 / scale
 
   ctx.fillStyle = obj.color
-  ctx.strokeStyle = '#18a0fb' // цвет выделения
-  ctx.lineWidth = 2 / scale
+  ctx.strokeStyle = '#666666' // цвет выделения
+  ctx.lineWidth = 3
+
+  const radius = obj.type === 'sticky' ? 0 : 8
+  const path = createRoundedRectPath(obj.x, obj.y, obj.width, obj.height, radius)
 
   if (obj.type === 'sticky' || obj.type === 'rect') {
-    const radius = obj.type === 'sticky' ? 0 : 8
-    const path = createRoundedRectPath(obj.x, obj.y, obj.width, obj.height, radius)
-
     ctx.fill(path)
+    ctx.stroke(path)
     if (isSelected) {
       ctx.shadowColor = 'transparent' // убираем тень для обводки
-      ctx.stroke(path)
     }
   } else if (obj.type === 'circle') {
     ctx.beginPath()
@@ -57,9 +57,9 @@ export function drawObject(
       Math.PI * 2
     )
     ctx.fill()
+    ctx.stroke()
     if (isSelected) {
       ctx.shadowColor = 'transparent'
-      ctx.stroke()
     }
   }
 
@@ -69,8 +69,9 @@ export function drawObject(
     ctx.shadowColor = 'transparent'
     ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
 
-    const fontSize = 14
-    ctx.font = `500 ${fontSize}px sans-serif`
+    const fontSize = 12
+    // ctx.font = `500 ${fontSize}px sans-serif`
+    ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", Roboto, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
 
