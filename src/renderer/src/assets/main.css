@@ -26,6 +26,37 @@ code {
   font-size: 85%;
 }
 
+/* cursor */
+/* Базовый класс для холста: каноничная крупная черная стрелка FigJam с белой обводкой */
+.cursor-figjam-select {
+  cursor:
+    url('./cursors/select.svg') 4 3,
+    default;
+}
+
+/* Курсор для создания фигур (прицел-плюсик) */
+.cursor-figjam-crosshair {
+  cursor:
+    url('./cursors/select_themed.svg') 12 12,
+    crosshair;
+}
+
+/* Режим руки (Панорамирование - Grab) */
+.cursor-figjam-grab {
+  cursor:
+    url('./cursors/hand.svg') 12 12,
+    grab;
+}
+
+/* Режим руки в момент перетаскивания (Зажатая мышь - Grabbing) */
+.cursor-figjam-grabbing {
+  cursor:
+    url('./cursors/hand.svg') 12 12,
+    grabbing;
+}
+
+/* !cursor */
+
 #app {
   display: flex;
   align-items: center;
