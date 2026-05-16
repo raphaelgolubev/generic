@@ -7,9 +7,10 @@ export const MAX_ZOOM = 6.0
 export const GRID_SIZE = 10
 export const objects = writable<CanvasObject[]>([])
 export const selectedIds = writable<string[]>([])
-export const scale = writable(1)
+export const scale = writable(3)
 export const offsetX = writable(0)
 export const offsetY = writable(0)
+export const isAnyBarHovered = writable(false)
 
 // чисто для дебага
 export const Mouse = {
@@ -23,11 +24,12 @@ export const mouse = writable(Mouse)
 
 // цвета
 export const theme = {
-  accentColor: '#98fb87',
+  accentColor: '#ffb800',
+  accentColorTint: '#fff6df',
   canvasBackgroundColor: '#fbfbfb',
   gridDotsColor: '#e0e0e0',
-  selectionStrokeColor: '#18a0fb',
-  selectionSquareColor: 'rgba(24, 160, 251, 0.1)'
+  selectionStrokeColor: '#0b84fe',
+  selectionSquareColor: 'rgba(11, 132, 254, 0.05)'
 } as const
 
 // логика обработки действий
