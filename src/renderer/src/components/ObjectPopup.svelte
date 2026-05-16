@@ -2,6 +2,7 @@
   import { objects, selectedIds, sceneActions } from '../store'
   import type { ShapeType } from '../types'
   import type { Writable } from 'svelte/store' // Импортируем тип для сторов
+  import { isAnyBarHovered } from '../store'
 
   // Принимаем сторы как пропсы
   export let scale: Writable<number>
@@ -25,7 +26,14 @@
 </script>
 
 {#if obj && !isLeftMouseButtonBusy}
-  <div class="object-popup" style={popupStyle}>
+  <div
+    class="object-popup"
+    style={popupStyle}
+    role="toolbar"
+    tabindex="-1"
+    on:mouseenter={() => isAnyBarHovered.set(true)}
+    on:mouseleave={() => isAnyBarHovered.set(false)}
+  >
     {#if obj.type === 'arrow'}
       <div class="select-wrapper">
         <select
@@ -104,6 +112,50 @@
         <span class="color-preview" style="background-color: {obj.color}"></span>
       </label>
 
+      <div class="divider"></div>
+
+      <!-- Выбор цвета рамки -->
+      <label class="color-picker-wrapper" title="Stroke color">
+        <input
+          type="color"
+          value={obj.strokeColor || '#000000'}
+          on:input={(e) => {
+            const color = e.currentTarget.value
+            objects.update((objs) =>
+              objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, strokeColor: color } : o))
+            )
+          }}
+        />
+        <span class="stroke-preview" style="border-color: {obj.strokeColor || '#000'}"></span>
+      </label>
+
+      <!-- Выбор толщины рамки -->
+      <div class="select-wrapper width-select">
+        <select
+          value={obj.strokeWidth?.toString() || '3'}
+          on:change={(e) => {
+            const width = parseInt(e.currentTarget.value)
+            objects.update((objs) =>
+              objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, strokeWidth: width } : o))
+            )
+          }}
+        >
+          <option value="0">None</option>
+          <option value="3">Thin</option>
+          <option value="6">Medium</option>
+          <option value="9">Thick</option>
+        </select>
+        <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
+          ><path
+            d="M1 1L5 5L9 1"
+            stroke="#666"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
+        >
+      </div>
+
       <div class="select-wrapper">
         <select
           value={obj.type}
@@ -119,8 +171,8 @@
             )
           }}
         >
-          <option value="sticky">Sticky Note</option>
-          <option value="rect">Square</option>
+          <option value="rect">Rectangle</option>
+          <option value="roundRect">Rounded</option>
           <option value="circle">Circle</option>
         </select>
         <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
@@ -200,6 +252,20 @@
     height: 18px;
     border-radius: 4px;
     border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .stroke-preview {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 2px solid #000; /* Цвет меняется через inline style */
+    background: transparent;
+  }
+
+  .width-select select {
+    padding-right: 20px !important;
+    width: 85px;
+    min-width: 85px;
   }
 
   .select-wrapper {

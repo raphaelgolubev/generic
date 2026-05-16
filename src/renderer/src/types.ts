@@ -1,6 +1,6 @@
 export type Tool = 'select' | 'shape' | 'arrow' | 'hand'
 
-export type ShapeType = 'sticky' | 'rect' | 'circle'
+export type ShapeType = 'rect' | 'roundRect' | 'circle'
 
 export type ResizeHandle = 'tl' | 'tr' | 'bl' | 'br' | 'edge' | null
 
@@ -21,6 +21,8 @@ export interface SceneObject extends BaseObject {
   preciseWidth?: number
   preciseHeight?: number
   text?: string
+  strokeColor?: string
+  strokeWidth?: number
 }
 
 export type ArrowHead = 'none' | 'arrow' | 'triangle' | 'dot'

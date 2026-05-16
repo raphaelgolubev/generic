@@ -64,6 +64,8 @@ export const sceneActions = {
       height: initialSize,
       color,
       text: 'Text',
+      strokeColor: '#666666',
+      strokeWidth: 3,
       isSelected: false
     }
     objects.update((objs) => [...objs, newObj])

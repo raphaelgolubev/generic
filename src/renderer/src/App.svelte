@@ -9,7 +9,7 @@
 
   let activeTool: Tool = 'select'
   let previousTool: Tool = 'select'
-  let activeShape: ShapeType = 'sticky'
+  let activeShape: ShapeType = 'roundRect'
 
   function handleKeyDown(e: KeyboardEvent): void {
     if (e.code === 'Space' && activeTool !== 'hand' && e.target === document.body) {

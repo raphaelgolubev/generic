@@ -150,7 +150,7 @@ export class InputHandler {
         this.selectionStart = { x, y }
       }
     } else if (activeTool === 'shape') {
-      sceneActions.addObject(x, y, activeShape, activeShape === 'sticky' ? '#fff7d1' : '#ffffff')
+      sceneActions.addObject(x, y, activeShape, activeShape === 'rect' ? '#fff7d1' : '#ffffff')
     } else if (activeTool === 'arrow') {
       // ...
       return

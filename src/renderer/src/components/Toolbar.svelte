@@ -75,9 +75,9 @@
       <div class="submenu" role="menu" transition:fade={{ duration: 150 }}>
         <button
           role="menuitem"
-          aria-label="Стикер"
+          aria-label="Квадрат"
           on:click={() => {
-            activeShape = 'sticky'
+            activeShape = 'rect'
             activeTool = 'shape'
             showShapeMenu = false
           }}
@@ -89,16 +89,14 @@
             stroke="currentColor"
             stroke-width="2"
           >
-            <path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8.5L15.5 3z" /><path
-              d="M15 3v6h6"
-            />
+            <rect x="3" y="3" width="18" height="18" />
           </svg></button
         >
         <button
           role="menuitem"
-          aria-label="Квадрат"
+          aria-label="Скругленный"
           on:click={() => {
-            activeShape = 'rect'
+            activeShape = 'roundRect'
             activeTool = 'shape'
             showShapeMenu = false
           }}
@@ -137,8 +135,8 @@
 
     <button class:active={activeTool === 'shape'} on:click={() => (activeTool = 'shape')}>
       <!-- иконка меняется в зависимости от выбранной фигуры -->
-      {#if activeShape === 'sticky'}
-        <!-- Иконка стикера -->
+      {#if activeShape === 'rect'}
+        <!-- Иконка обычного квадрата (Rectangle) -->
         <svg
           width="20"
           height="20"
@@ -147,11 +145,9 @@
           stroke="currentColor"
           stroke-width="2"
         >
-          <path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8.5L15.5 3z" /><path
-            d="M15 3v6h6"
-          />
+          <rect x="3" y="3" width="18" height="18" />
         </svg>
-      {:else if activeShape === 'rect'}
+      {:else if activeShape === 'roundRect'}
         <!-- иконка квадрата -->
         <svg
           width="20"

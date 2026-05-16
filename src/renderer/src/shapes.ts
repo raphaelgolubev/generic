@@ -33,13 +33,13 @@ export function drawObject(
   // ctx.shadowOffsetY = 4 / scale
 
   ctx.fillStyle = obj.color
-  ctx.strokeStyle = '#666666' // цвет выделения
-  ctx.lineWidth = 3
+  ctx.strokeStyle = obj.strokeColor || '#666666' // цвет выделения
+  ctx.lineWidth = obj.strokeWidth || 3
 
-  const radius = obj.type === 'sticky' ? 0 : 8
+  const radius = obj.type === 'rect' ? 0 : 8
   const path = createRoundedRectPath(obj.x, obj.y, obj.width, obj.height, radius)
 
-  if (obj.type === 'sticky' || obj.type === 'rect') {
+  if (obj.type === 'rect' || obj.type === 'roundRect') {
     ctx.fill(path)
     ctx.stroke(path)
     if (isSelected) {
