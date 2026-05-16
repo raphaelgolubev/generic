@@ -1,4 +1,4 @@
-export type Tool = 'select' | 'shape' | 'arrow' | 'eraser' | 'hand'
+export type Tool = 'select' | 'shape' | 'arrow' | 'hand'
 
 export type ShapeType = 'sticky' | 'rect' | 'circle'
 
