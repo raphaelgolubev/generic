@@ -14,6 +14,8 @@
     theme
   } from '../store'
   import ContextMenu from './ContextMenu.svelte'
+  import ObjectPopup from './ObjectPopup.svelte'
+  import SizeLabel from './SizeLabel.svelte'
 
   export let activeTool: Tool
   export let activeShape: ShapeType
@@ -23,6 +25,7 @@
   let menuPos = { x: 0, y: 0 }
   let showMenu = false
 
+  let isCanvasDragging = false // взводится при panning
   let isLeftMouseButtonBusy = false
 
   let canvas: HTMLCanvasElement
@@ -34,10 +37,13 @@
   let editingId: string | null = null
 
   // реактивный курсор
-  $: if (canvas) {
-    if (isSpacePressed || activeTool === 'hand') canvas.style.cursor = 'grab'
-    else canvas.style.cursor = 'crosshair'
-  }
+  // Реактивный расчет актуального класса курсора
+  $: cursorClass = (() => {
+    if (isCanvasDragging) return 'cursor-figjam-grabbing'
+    if (isSpacePressed || activeTool === 'hand') return 'cursor-figjam-grab'
+    if (activeTool === 'shape' || activeTool === 'arrow') return 'cursor-figjam-crosshair'
+    return 'cursor-figjam-select'
+  })()
 
   function animate(): void {
     if (!ctx) return
@@ -85,28 +91,30 @@
   function handleMouseDown(e: MouseEvent): void {
     isLeftMouseButtonBusy = true
 
+    // Проверяем, началось ли панорамирование холста (инструмент рука, зажатый пробел или колесико)
+    if (activeTool === 'hand' || isSpacePressed || e.button === 1) {
+      isCanvasDragging = true
+    }
+
     inputHandler.handleMouseDown(e, activeTool, activeShape, isSpacePressed)
 
-    // если мы только что создали объект (инструмент был shape),
-    // переключаем на select для удобства
     if (activeTool === 'shape') {
       activeTool = 'select'
     }
   }
   function handleMouseUp(): void {
     isLeftMouseButtonBusy = false
+    isCanvasDragging = false // сбрасываем перетаскивание холста
   }
   // управление через пробел
   function handleKeyDown(e: KeyboardEvent): void {
     if (e.code === 'Space') {
       isSpacePressed = true
-      canvas.style.cursor = 'grab'
     }
   }
   function handleKeyUp(e: KeyboardEvent): void {
     if (e.code === 'Space') {
       isSpacePressed = false
-      canvas.style.cursor = 'crosshair'
     }
   }
 
@@ -165,18 +173,24 @@
 <div class="canvas-container">
   <canvas
     bind:this={canvas}
+    class={cursorClass}
     on:mousedown={handleMouseDown}
     on:mouseup={() => {
       handleMouseUp()
       inputHandler.handleMouseUp()
     }}
     on:mousemove={(e) => inputHandler.handleMouseMove(e)}
-    on:mouseleave={() => inputHandler.handleMouseUp()}
+    on:mouseleave={() => {
+      handleMouseUp()
+      inputHandler.handleMouseUp()
+    }}
     on:wheel|preventDefault={(e) => inputHandler.handleWheel(e, MIN_ZOOM, MAX_ZOOM)}
     on:dblclick={handleDblClick}
     on:contextmenu={handleContextMenu}
     style:--canvas-color={theme.canvasBackgroundColor}
   ></canvas>
+
+  <SizeLabel {scale} {offsetX} {offsetY} />
 
   {#if showMenu}
     <ContextMenu x={menuPos.x} y={menuPos.y} close={() => (showMenu = false)} />
@@ -214,77 +228,9 @@
     {/if}
   {/if}
 
-  {#if $selectedIds.length > 0 && !editingId}
-    {@const obj = $objects.find((o) => o.id === $selectedIds[$selectedIds.length - 1])}
-    {#if obj && !isLeftMouseButtonBusy}
-      <div
-        class="object-popup"
-        style="
-        left: {(obj.type === 'arrow' ? obj.end.x : obj.x) * $scale + $offsetX}px; 
-        top: {(obj.type === 'arrow' ? obj.end.y : obj.y) * $scale + $offsetY - 60}px;
-        transform: scale({$scale < 0.5 ? 0.8 : 1});
-      "
-      >
-        {#if obj.type === 'arrow'}
-          <!-- ИНТЕРФЕЙС ДЛЯ СТРЕЛКИ -->
-          <select bind:value={obj.mode} on:change={() => objects.update((objs) => objs)}>
-            <option value="straight">Straight</option>
-            <option value="orthogonal">Step</option>
-            <option value="bezier">Bezier</option>
-          </select>
-
-          <div class="divider"></div>
-
-          <!-- Наконечник начала -->
-          <select bind:value={obj.startHead} on:change={() => objects.update((objs) => objs)}>
-            <option value="none">Start: None</option>
-            <option value="arrow">Start: Arrow</option>
-            <option value="triangle">Start: Triangle</option>
-          </select>
-
-          <!-- Наконечник конца -->
-          <select bind:value={obj.endHead} on:change={() => objects.update((objs) => objs)}>
-            <option value="none">End: None</option>
-            <option value="arrow">End: Arrow</option>
-            <option value="triangle">End: Triangle</option>
-          </select>
-        {:else}
-          <!-- ИНТЕРФЕЙС ДЛЯ ФИГУР -->
-          <input
-            type="color"
-            value={obj.color}
-            on:input={(e) => {
-              const newColor = e.currentTarget.value
-              objects.update((objs) =>
-                objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, color: newColor } : o))
-              )
-            }}
-          />
-          <select
-            value={obj.type}
-            on:change={(e) => {
-              const newType = e.currentTarget.value as ShapeType
-              objects.update((objs) =>
-                objs.map((o) => {
-                  // меняем тип только если ID совпадает И это не стрелка
-                  if ($selectedIds.includes(o.id) && o.type !== 'arrow') {
-                    return { ...o, type: newType }
-                  }
-                  return o
-                })
-              )
-            }}
-          >
-            <option value="sticky">Sticky</option>
-            <option value="rect">Square</option>
-            <option value="circle">Circle</option>
-          </select>
-        {/if}
-
-        <div class="divider"></div>
-        <button on:click={() => sceneActions.deleteSelected()} title="Delete">🗑️</button>
-      </div>
-    {/if}
+  <!-- НАШ НОВЫЙ ВЫНЕСЕННЫЙ КОМПОНЕНТ ПАРАМЕТРОВ -->
+  {#if !editingId}
+    <ObjectPopup {scale} {offsetX} {offsetY} {isLeftMouseButtonBusy} />
   {/if}
 </div>
 
@@ -300,36 +246,6 @@
     position: relative;
     width: 100vw;
     height: 100vh;
-  }
-
-  .object-popup {
-    position: absolute;
-    display: flex;
-    gap: 8px;
-    padding: 6px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    pointer-events: all;
-    z-index: 100;
-  }
-  .object-popup select {
-    border: none;
-    background: #f0f0f0;
-    border-radius: 4px;
-    padding: 2px 4px;
-    font-size: 12px;
-    cursor: pointer;
-  }
-  .object-popup select:hover {
-    background: #e0e0e0;
-  }
-
-  .divider {
-    width: 1px;
-    height: 20px;
-    background: #eee;
-    margin: 0 4px;
   }
 
   textarea {

@@ -1,0 +1,261 @@
+<script lang="ts">
+  import { objects, selectedIds, sceneActions } from '../store'
+  import type { ShapeType } from '../types'
+  import type { Writable } from 'svelte/store' // Импортируем тип для сторов
+
+  // Принимаем сторы как пропсы
+  export let scale: Writable<number>
+  export let offsetX: Writable<number>
+  export let offsetY: Writable<number>
+  export let isLeftMouseButtonBusy: boolean
+
+  // Реактивно ищем выбранный объект (используем $selectedIds и $objects)
+  $: obj = $objects.find((o) => o.id === $selectedIds[$selectedIds.length - 1])
+
+  // Магия Svelte: подписываемся на значения сторов через $scale, $offsetX, $offsetY
+  $: popupStyle = obj
+    ? `left: ${(obj.type === 'arrow' ? obj.end.x : obj.x) * $scale + $offsetX}px; ` +
+      `top: ${(obj.type === 'arrow' ? obj.end.y : obj.y) * $scale + $offsetY - 60}px; ` +
+      `transform: scale(${$scale < 0.5 ? 0.8 : 1});`
+    : ''
+
+  function updateArrowProperty(id: string, property: string, value: string): void {
+    objects.update((objs) => objs.map((o) => (o.id === id ? { ...o, [property]: value } : o)))
+  }
+</script>
+
+{#if obj && !isLeftMouseButtonBusy}
+  <div class="object-popup" style={popupStyle}>
+    {#if obj.type === 'arrow'}
+      <div class="select-wrapper">
+        <select
+          value={obj.mode}
+          on:change={(e) => updateArrowProperty(obj.id, 'mode', e.currentTarget.value)}
+        >
+          <option value="straight">Straight</option>
+          <option value="orthogonal">Step</option>
+          <option value="bezier">Bezier</option>
+        </select>
+        <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
+          ><path
+            d="M1 1L5 5L9 1"
+            stroke="#666"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
+        >
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="select-wrapper">
+        <select
+          value={obj.startHead}
+          on:change={(e) => updateArrowProperty(obj.id, 'startHead', e.currentTarget.value)}
+        >
+          <option value="none">Start: None</option>
+          <option value="arrow">Start: Arrow</option>
+          <option value="triangle">Start: Triangle</option>
+        </select>
+        <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
+          ><path
+            d="M1 1L5 5L9 1"
+            stroke="#666"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
+        >
+      </div>
+
+      <div class="select-wrapper">
+        <select
+          value={obj.endHead}
+          on:change={(e) => updateArrowProperty(obj.id, 'endHead', e.currentTarget.value)}
+        >
+          <option value="none">End: None</option>
+          <option value="arrow">End: Arrow</option>
+          <option value="triangle">End: Triangle</option>
+        </select>
+        <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
+          ><path
+            d="M1 1L5 5L9 1"
+            stroke="#666"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
+        >
+      </div>
+    {:else}
+      <!-- ИНТЕРФЕЙС ДЛЯ ФИГУР -->
+      <label class="color-picker-wrapper" title="Change color">
+        <input
+          type="color"
+          value={obj.color}
+          on:input={(e) => {
+            const newColor = e.currentTarget.value
+            objects.update((objs) =>
+              objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, color: newColor } : o))
+            )
+          }}
+        />
+        <span class="color-preview" style="background-color: {obj.color}"></span>
+      </label>
+
+      <div class="select-wrapper">
+        <select
+          value={obj.type}
+          on:change={(e) => {
+            const newType = e.currentTarget.value as ShapeType
+            objects.update((objs) =>
+              objs.map((o) => {
+                if ($selectedIds.includes(o.id) && o.type !== 'arrow') {
+                  return { ...o, type: newType }
+                }
+                return o
+              })
+            )
+          }}
+        >
+          <option value="sticky">Sticky Note</option>
+          <option value="rect">Square</option>
+          <option value="circle">Circle</option>
+        </select>
+        <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
+          ><path
+            d="M1 1L5 5L9 1"
+            stroke="#666"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          /></svg
+        >
+      </div>
+    {/if}
+
+    <div class="divider"></div>
+
+    <button class="delete-btn" on:click={() => sceneActions.deleteSelected()} title="Delete">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        ><path
+          d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"
+        /></svg
+      >
+    </button>
+  </div>
+{/if}
+
+<style>
+  .object-popup {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    background: white;
+    border-radius: 12px;
+    box-shadow:
+      0 6px 24px rgba(0, 0, 0, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e5e5e5;
+    pointer-events: all;
+    z-index: 100;
+    user-select: none;
+    transition: transform 0.1s ease;
+    transform-origin: bottom left;
+  }
+
+  .color-picker-wrapper {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+  }
+  .color-picker-wrapper:hover {
+    background: #f5f5f5;
+  }
+  .color-picker-wrapper input[type='color'] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  .color-preview {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .object-popup select {
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    padding: 6px 24px 6px 8px;
+    font-family: sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+    outline: none;
+    transition: background 0.15s ease;
+  }
+  .object-popup select:hover {
+    background: #f5f5f5;
+  }
+  .select-arrow {
+    position: absolute;
+    right: 8px;
+    pointer-events: none;
+  }
+
+  .divider {
+    width: 1px;
+    height: 18px;
+    background: #e5e5e5;
+    margin: 0 4px;
+  }
+
+  .object-popup button {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #555;
+    transition: all 0.15s ease;
+  }
+  .object-popup button:hover {
+    background: #f5f5f5;
+  }
+  .object-popup button.delete-btn:hover {
+    background: #fff0f0;
+    color: #f44336;
+  }
+</style>
