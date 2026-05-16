@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition'
   import type { ShapeType, Tool } from '../types'
+  import { isAnyBarHovered } from '../store'
   export let activeTool: Tool
   export let activeShape: ShapeType
 
@@ -21,7 +22,13 @@
   }
 </script>
 
-<div class="toolbar">
+<div
+  class="toolbar"
+  role="toolbar"
+  tabindex="-1"
+  on:mouseenter={() => isAnyBarHovered.set(true)}
+  on:mouseleave={() => isAnyBarHovered.set(false)}
+>
   <button
     class:active={activeTool === 'hand'}
     on:click={() => setTool('hand')}
@@ -173,22 +180,6 @@
   </div>
 
   <button
-    class:active={activeTool === 'eraser'}
-    on:click={() => setTool('eraser')}
-    title="Eraser (E)"
-  >
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      ><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z" /><path d="M17 17L7 7" /></svg
-    >
-  </button>
-
-  <button
     class:active={activeTool === 'arrow'}
     on:click={() => (activeTool = 'arrow')}
     title="Arrow (A)"
@@ -268,7 +259,7 @@
   }
 
   button.active {
-    background: #e3f2fd;
-    color: #1976d2;
+    background: var(--accent-color-tint);
+    color: var(--accent-color);
   }
 </style>

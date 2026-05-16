@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { scale, offsetX, offsetY } from '../store'
+  import { scale, offsetX, offsetY, isAnyBarHovered } from '../store'
 
   export let MAX_ZOOM: number
   export let MIN_ZOOM: number
 
   function resetView(): void {
-    $scale = 1
+    $scale = 3
     $offsetX = 0
     $offsetY = 0
   }
@@ -45,7 +45,14 @@
   $: zoomPercent = Math.round($scale * 100)
 </script>
 
-<div class="zoom-control">
+<div
+  class="zoom-control"
+  role="slider"
+  aria-valuenow="3"
+  tabindex="-1"
+  on:mouseenter={() => isAnyBarHovered.set(true)}
+  on:mouseleave={() => isAnyBarHovered.set(false)}
+>
   <button class="percent-btn" on:click={resetView} title="Reset view">
     {zoomPercent}%
   </button>
@@ -60,6 +67,7 @@
       step="0.01"
       value={$scale}
       on:input={handleRangeInput}
+      style="--progress: {(($scale - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)) * 100}%;"
     />
 
     <button on:click={zoomIn} title="Zoom In">+</button>
@@ -129,5 +137,45 @@
   input[type='range'] {
     width: 100px;
     cursor: pointer;
+    /* Убираем дефолтные стили браузера */
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+
+  /* 1. СТИЛИЗАЦИЯ БЕГУНКА (Кругляшок) */
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -5px; /* Центрируем относительно дорожки ( (14px - 4px) / 2 ) */
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: var(--accent-color); /* Твой цвет из темы */
+    transition: transform 0.1s ease;
+  }
+
+  input[type='range']::-webkit-slider-thumb:hover {
+    transform: scale(1.2); /* Легкий интерактив при наведении */
+  }
+
+  /* 2. СТИЛИЗАЦИЯ ДОРОЖКИ (Полоса) */
+  input[type='range']::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    /* Градиент рисует оранжевый цвет от 0% до ползунка, а дальше оставляет светло-серый */
+    background: linear-gradient(
+      to right,
+      var(--accent-color) 0%,
+      var(--accent-color) var(--progress),
+      #e0e0e0 var(--progress),
+      #e0e0e0 100%
+    );
+    border-radius: 2px;
+  }
+
+  /* За фокус состояния */
+  input[type='range']:focus {
+    outline: none;
   }
 </style>
