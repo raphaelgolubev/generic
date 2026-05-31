@@ -5,7 +5,7 @@
   import DebugPanel from './components/DebugPanel.svelte'
   import type { ShapeType, Tool } from './types'
   import { MAX_ZOOM, MIN_ZOOM, theme } from './core/constants'
-  import { applyTheme } from './cssUtils'
+  import { applyTheme } from './core/utils/cssUtils'
 
   let activeTool: Tool = 'select'
   let previousTool: Tool = 'select'

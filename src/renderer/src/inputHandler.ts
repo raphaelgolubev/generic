@@ -1,6 +1,6 @@
 import { get } from 'svelte/store'
 import { objects, selectedIds, scale, offsetX, offsetY, mouse } from './core/constants'
-import { sceneActions } from './store'
+import { sceneActions } from './scene'
 import type { Tool, ShapeType, ResizeHandle, CanvasObject } from './types'
 
 export class InputHandler {

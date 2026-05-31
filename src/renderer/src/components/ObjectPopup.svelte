@@ -2,7 +2,7 @@
   import { objects, selectedIds, isAnyBarHovered } from '../core/constants'
   import type { ShapeType } from '../types'
   import type { Writable } from 'svelte/store' // Импортируем тип для сторов
-  import { sceneActions } from '../store'
+  import { sceneActions } from '../scene'
 
   // Принимаем сторы как пропсы
   export let scale: Writable<number>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { sceneActions } from '../store'
+  import { sceneActions } from '../scene'
   import { fade } from 'svelte/transition'
 
   export let x: number

@@ -1,5 +1,5 @@
-import { wrapText } from './text'
-import type { SceneObject } from './types'
+import { wrapText } from '../../text'
+import type { SceneObject } from '../../types'
 
 // создает путь для стикера или прямоугольника со скруглениями
 export function createRoundedRectPath(

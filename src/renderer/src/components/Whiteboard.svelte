@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import type { Tool, CanvasObject, ShapeType } from '../types'
-  import { renderScene } from '../canvasUtils'
+  import { renderScene } from '../core/graphics/render'
   import { inputHandler } from '../inputHandler'
   import {
     objects,
@@ -12,7 +12,7 @@
     GRID_SIZE,
     theme
   } from '../core/constants'
-  import { sceneActions } from '../store'
+  import { sceneActions } from '../scene'
   import ContextMenu from './ContextMenu.svelte'
   import ObjectPopup from './ObjectPopup.svelte'
   import SizeLabel from './SizeLabel.svelte'
