@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition'
   import type { ShapeType, Tool } from '../types'
-  import { isAnyBarHovered } from '../store'
+  import { isAnyBarHovered } from '../core/constants'
   export let activeTool: Tool
   export let activeShape: ShapeType
 

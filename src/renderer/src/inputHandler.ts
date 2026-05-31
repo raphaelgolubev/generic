@@ -1,5 +1,6 @@
 import { get } from 'svelte/store'
-import { objects, selectedIds, scale, offsetX, offsetY, sceneActions, mouse } from './store'
+import { objects, selectedIds, scale, offsetX, offsetY, mouse } from './core/constants'
+import { sceneActions } from './store'
 import type { Tool, ShapeType, ResizeHandle, CanvasObject } from './types'
 
 export class InputHandler {
@@ -233,20 +234,6 @@ export class InputHandler {
           sceneActions.updateObject(this.draggedId, e.movementX / s, e.movementY / s, null)
         }
       }
-
-      // // если объект часть группы — двигаем всю группу
-      // if (currentIds.includes(this.draggedId)) {
-      //   currentIds.forEach((id) => {
-      //     sceneActions.updateObject(id, e.movementX / s, e.movementY / s, this.activeHandle)
-      //   })
-      // } else {
-      //   sceneActions.updateObject(
-      //     this.draggedId,
-      //     e.movementX / s,
-      //     e.movementY / s,
-      //     this.activeHandle
-      //   )
-      // }
     }
   }
 

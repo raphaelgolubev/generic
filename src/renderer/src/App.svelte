@@ -4,7 +4,7 @@
   import ZoomControl from './components/ZoomControl.svelte'
   import DebugPanel from './components/DebugPanel.svelte'
   import type { ShapeType, Tool } from './types'
-  import { MAX_ZOOM, MIN_ZOOM, theme } from './store'
+  import { MAX_ZOOM, MIN_ZOOM, theme } from './core/constants'
   import { applyTheme } from './cssUtils'
 
   let activeTool: Tool = 'select'

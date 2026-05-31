@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { mouse, isAnyBarHovered } from '../store'
+  import { mouse, isAnyBarHovered } from '../core/constants'
 
   // добавляем небольшое смещение, чтобы панель не перекрывалась самим курсором
   const OFFSET_X = 16

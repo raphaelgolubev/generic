@@ -1,6 +1,6 @@
 import type { CanvasObject, ResizeHandle } from './types'
 import { drawObject } from './shapes'
-import { theme } from './store'
+import { theme } from './core/constants'
 
 export function renderScene(
   ctx: CanvasRenderingContext2D,

@@ -9,10 +9,10 @@
     scale,
     offsetX,
     offsetY,
-    sceneActions,
     GRID_SIZE,
     theme
-  } from '../store'
+  } from '../core/constants'
+  import { sceneActions } from '../store'
   import ContextMenu from './ContextMenu.svelte'
   import ObjectPopup from './ObjectPopup.svelte'
   import SizeLabel from './SizeLabel.svelte'
