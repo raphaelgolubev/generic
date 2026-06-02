@@ -28,9 +28,9 @@ export function createRoundedRectPath(
 function drawObjectText(ctx: CanvasRenderingContext2D, obj: SceneObject): void {
   ctx.save()
   ctx.shadowColor = 'transparent'
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
+  ctx.fillStyle = obj.type === 'text' ? obj.color : obj.textColor //'rgba(0, 0, 0, 0.8)'
 
-  const fontSize = 12
+  const fontSize = obj.fontSize || 12
   ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", Roboto, sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'

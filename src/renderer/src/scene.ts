@@ -34,6 +34,8 @@ export const sceneActions = {
       height: initialSize,
       color,
       text: 'Text',
+      textColor: 'rgba(0, 0, 0, 0.8)',
+      fontSize: 12,
       strokeColor: '#666666',
       strokeWidth: 3,
       isSelected: false
@@ -56,7 +58,8 @@ export const sceneActions = {
       width: initialWidth,
       height: initialHeight,
       text: initialText,
-      color: '#222222', // Базовый цвет букв
+      fontSize: 12,
+      color: 'rgba(0, 0, 0, 0.8)', // Базовый цвет букв
       isSelected: false
     }
 
