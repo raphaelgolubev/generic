@@ -1,5 +1,6 @@
 <script lang="ts">
   import { sceneActions } from '../scene'
+  import { isAnyBarHovered } from '../core/state'
   import { fade } from 'svelte/transition'
 
   export let x: number
@@ -14,19 +15,22 @@
   style="left: {x}px; top: {y}px;"
   transition:fade={{ duration: 100 }}
   on:contextmenu|preventDefault
+  on:mouseenter={() => isAnyBarHovered.set(true)}
+  on:mouseleave={() => isAnyBarHovered.set(false)}
 >
   <button
     role="menuitem"
-    on:click={() => {
+    on:mousedown|preventDefault|stopPropagation={() => {
       sceneActions.moveSelected('front')
       close()
     }}
   >
     На передний план
   </button>
+
   <button
     role="menuitem"
-    on:click={() => {
+    on:mousedown|preventDefault|stopPropagation={() => {
       sceneActions.moveSelected('back')
       close()
     }}

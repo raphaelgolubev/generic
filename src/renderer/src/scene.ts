@@ -178,17 +178,25 @@ export const sceneActions = {
 
   moveSelected: (direction: 'front' | 'back') => {
     const ids = get(selectedIds)
+    console.log('Selected IDs to move:', ids)
     if (ids.length === 0) return
 
     objects.update((objs) => {
       const selected = objs.filter((o) => ids.includes(o.id))
       const remaining = objs.filter((o) => !ids.includes(o.id))
 
-      if (direction === 'front') {
-        return [...remaining, ...selected] // Перемещаем в конец массива
-      } else {
-        return [...selected, ...remaining] // Перемещаем в начало массива
-      }
+      console.log(
+        'Before move:',
+        objs.map((o) => o.id)
+      )
+      const result =
+        direction === 'front' ? [...remaining, ...selected] : [...selected, ...remaining]
+      console.log(
+        'After move:',
+        result.map((o) => o.id)
+      )
+
+      return result
     })
   }
 }
