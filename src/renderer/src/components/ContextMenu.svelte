@@ -41,7 +41,7 @@
   <button
     role="menuitem"
     class="delete"
-    on:click={() => {
+    on:mousedown|preventDefault|stopPropagation={() => {
       sceneActions.deleteSelected()
       close()
     }}
