@@ -1,6 +1,6 @@
 import { get } from 'svelte/store'
 import { offsetX, offsetY, scale } from './state'
-import type { ResizeHandle, SceneObject } from '../types'
+import type { CanvasObject, ResizeHandle, SceneObject } from '../types'
 
 export function screenToWorld(clientX: number, clientY: number): { x: number; y: number } {
   const s = get(scale)
@@ -10,6 +10,22 @@ export function screenToWorld(clientX: number, clientY: number): { x: number; y:
   return {
     x: (clientX - ox) / s,
     y: (clientY - oy) / s
+  }
+}
+
+/**
+ * Переводит мировые координаты холста (координаты объекта) в экранные пиксели.
+ */
+export function worldToScreen(
+  worldX: number,
+  worldY: number,
+  scale: number,
+  ox: number,
+  oy: number
+): { x: number; y: number } {
+  return {
+    x: worldX * scale + ox,
+    y: worldY * scale + oy
   }
 }
 
@@ -80,5 +96,74 @@ export function transformSceneObject(
       x: snapToGrid(s.pX, gridSize),
       y: snapToGrid(s.pY, gridSize)
     } as SceneObject
+  }
+}
+
+/**
+ * Проверяет попадание точки в прямоугольный объект сцены.
+ */
+export function isPointInObject(x: number, y: number, obj: CanvasObject): boolean {
+  if (obj.type === 'arrow') return false // Поведение по вашей текущей логике
+  return x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height
+}
+
+/**
+ * Определяет, по какому маркеру изменения размера кликнул пользователь.
+ */
+export function getResizeHandleAtPosition(
+  x: number,
+  y: number,
+  obj: CanvasObject,
+  scale: number
+): ResizeHandle {
+  if (obj.type === 'arrow') return null
+
+  const handleSize = 15 / scale
+
+  if (Math.abs(x - obj.x) < handleSize && Math.abs(y - obj.y) < handleSize) return 'tl'
+  if (Math.abs(x - (obj.x + obj.width)) < handleSize && Math.abs(y - obj.y) < handleSize)
+    return 'tr'
+  if (Math.abs(x - obj.x) < handleSize && Math.abs(y - (obj.y + obj.height)) < handleSize)
+    return 'bl'
+  if (
+    Math.abs(x - (obj.x + obj.width)) < handleSize &&
+    Math.abs(y - (obj.y + obj.height)) < handleSize
+  )
+    return 'br'
+
+  return null
+}
+
+/**
+ * Проверяет, пересекается ли прямоугольный объект с рамкой выделения (marquee).
+ */
+export function isObjectInMarquee(
+  obj: CanvasObject,
+  marquee: { x: number; y: number; w: number; h: number }
+): boolean {
+  if (obj.type === 'arrow') return false
+  return (
+    obj.x < marquee.x + marquee.w &&
+    obj.x + obj.width > marquee.x &&
+    obj.y < marquee.y + marquee.h &&
+    obj.y + obj.height > marquee.y
+  )
+}
+
+/**
+ * Вычисляет новые смещения холста (offsetX, offsetY) с учетом точки зума под курсором мыши.
+ */
+export function calculateZoomOffsets(
+  oldScale: number,
+  newScale: number,
+  mouseX: number,
+  mouseY: number,
+  ox: number,
+  oy: number
+): { ox: number; oy: number } {
+  const ratio = newScale / oldScale
+  return {
+    ox: mouseX - (mouseX - ox) * ratio,
+    oy: mouseY - (mouseY - oy) * ratio
   }
 }

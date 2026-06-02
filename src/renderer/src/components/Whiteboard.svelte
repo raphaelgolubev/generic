@@ -1,14 +1,19 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, tick } from 'svelte'
   import type { Tool, CanvasObject, ShapeType } from '../types'
-  import { renderScene } from '../core/graphics/render'
-  import { inputHandler } from '../inputHandler'
+  import {
+    renderScene,
+    getCanvasCursorClass,
+    resizeCanvasToDisplaySize
+  } from '../core/graphics/render'
+  import { inputHandler } from '../interaction/inputHandler'
   import { objects, selectedIds, scale, offsetX, offsetY } from '../core/state'
   import { GRID_SIZE, theme } from '../core/constants'
   import { sceneActions } from '../scene'
   import ContextMenu from './ContextMenu.svelte'
   import ObjectPopup from './ObjectPopup.svelte'
   import SizeLabel from './SizeLabel.svelte'
+  import { worldToScreen } from '../core/maths'
 
   export let activeTool: Tool
   export let activeShape: ShapeType
@@ -29,14 +34,8 @@
   let textareaRef: HTMLTextAreaElement
   let editingId: string | null = null
 
-  // реактивный курсор
-  // Реактивный расчет актуального класса курсора
-  $: cursorClass = (() => {
-    if (isCanvasDragging) return 'cursor-figjam-grabbing'
-    if (isSpacePressed || activeTool === 'hand') return 'cursor-figjam-grab'
-    if (activeTool === 'shape' || activeTool === 'arrow') return 'cursor-figjam-crosshair'
-    return 'cursor-figjam-select'
-  })()
+  // Чистый и декларативный расчет класса курсора
+  $: cursorClass = getCanvasCursorClass(isCanvasDragging, isSpacePressed, activeTool)
 
   function animate(): void {
     if (!ctx) return
@@ -111,39 +110,29 @@
     }
   }
 
-  // -----EDITING TEXT
-  function startEditing(obj: CanvasObject): void {
+  // Избавляемся от setTimeout в пользу нативного жизненного цикла Svelte
+  async function startEditing(obj: CanvasObject): Promise<void> {
     editingId = obj.id
-
-    // фокусируемся на textarea после того, как Svelte его отрисует
-    setTimeout(() => textareaRef?.focus(), 0)
+    await tick()
+    textareaRef?.focus()
   }
 
   function stopEditing(): void {
     editingId = null
   }
-  // ----- EDITING TEXT
 
   onMount(() => {
     ctx = canvas.getContext('2d')!
-    const resize = (): void => {
-      const dpr = window.devicePixelRatio || 1
 
-      // устанавливаем размер буфера (сколько пикселей внутри)
-      canvas.width = window.innerWidth * dpr
-      canvas.height = window.innerHeight * dpr
+    const resize = (): void => resizeCanvasToDisplaySize(canvas, ctx)
 
-      // устанавливаем визуальный размер через CSS
-      canvas.style.width = `${window.innerWidth}px`
-      canvas.style.height = `${window.innerHeight}px`
-
-      // масштабируем контекст, чтобы нам не пришлось менять
-      // координаты во всем остальном коде
-      ctx.scale(dpr, dpr)
-    }
     window.addEventListener('resize', resize)
     resize()
     animate()
+
+    return () => {
+      window.removeEventListener('resize', resize)
+    }
   })
 </script>
 
@@ -189,20 +178,20 @@
     <ContextMenu x={menuPos.x} y={menuPos.y} close={() => (showMenu = false)} />
   {/if}
 
-  <!-- ЗДЕСЬ Popup для редактирования текста -->
+  <!-- Popup для редактирования текста -->
   {#if editingId}
-    <!-- Ищем объект в массиве идентификатор которого соответствует editingId -->
-    <!-- Мы получаем editingId в функции handleDblClick -->
     {@const obj = $objects.find((o) => o.id === editingId)}
-    <!-- Если объект в массиве найден и это не стрелка -->
-    {#if obj && obj.type != 'arrow'}
-      <!-- Создаем Popup -->
+
+    {#if obj && obj.type !== 'arrow'}
+      <!-- Рассчитываем экранную позицию точки под объектом (obj.y + obj.height) через core/maths -->
+      {@const screenPos = worldToScreen(obj.x, obj.y + obj.height, $scale, $offsetX, $offsetY)}
+
       <div
         class="floating-editor"
         style="
-        left: {obj.x * $scale + $offsetX}px; 
-        top: {(obj.y + obj.height) * $scale + $offsetY + 10}px; 
-      "
+          left: {screenPos.x}px; 
+          top: {screenPos.y + 10}px; 
+        "
       >
         <textarea
           bind:this={textareaRef}
@@ -257,7 +246,6 @@
     position: absolute;
     z-index: 1000;
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
-    /* центрируем относительно объекта по горизонтали, если нужно */
     transform: translateX(0);
   }
 
@@ -269,14 +257,13 @@
     border: 2px solid #18a0fb;
     border-radius: 8px;
     outline: none;
-    resize: vertical; /* разрешаем менять высоту только вручную */
+    resize: vertical;
     font-family: sans-serif;
     font-size: 14px;
     line-height: 1.4;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
   }
 
-  /* маленький треугольник-указатель сверху */
   .floating-editor::before {
     content: '';
     position: absolute;
