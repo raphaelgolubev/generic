@@ -90,9 +90,7 @@
 
     inputHandler.handleMouseDown(e, activeTool, activeShape, isSpacePressed)
 
-    if (activeTool === 'shape') {
-      activeTool = 'select'
-    }
+    activeTool = 'select'
   }
   function handleMouseUp(): void {
     isLeftMouseButtonBusy = false
