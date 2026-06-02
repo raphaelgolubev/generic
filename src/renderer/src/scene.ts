@@ -2,6 +2,7 @@ import { get } from 'svelte/store'
 import { objects, selectedIds } from './core/state'
 import { GRID_SIZE } from './core/constants'
 import type { SceneObject, ArrowObject, ShapeType, ResizeHandle } from './types'
+import { snapToGrid, transformSceneObject } from './core/maths'
 
 // логика обработки действий
 export const sceneActions = {
@@ -20,8 +21,6 @@ export const sceneActions = {
     )
   },
 
-  snapToGrid: (value: number) => Math.round(value / GRID_SIZE) * GRID_SIZE,
-
   addObject: (x: number, y: number, type: ShapeType, color: string) => {
     const id = Date.now().toString()
     const initialSize = GRID_SIZE * 8
@@ -29,8 +28,8 @@ export const sceneActions = {
     const newObj: SceneObject = {
       id,
       type,
-      x: sceneActions.snapToGrid(x - offset),
-      y: sceneActions.snapToGrid(y - offset),
+      x: snapToGrid(x - offset, GRID_SIZE),
+      y: snapToGrid(y - offset, GRID_SIZE),
       width: initialSize,
       height: initialSize,
       color,
@@ -73,98 +72,106 @@ export const sceneActions = {
       selectedIds.set([])
     }
   },
+  //   objects.update((objs) =>
+  //     objs.map((obj) => {
+  //       if (obj.id !== id) return obj
+
+  //       // --- ЛОГИКА ДЛЯ СТРЕЛОК ---
+  //       if (obj.type === 'arrow') return obj
+
+  //       const s = obj as any
+  //       // Инициализируем "точные" накопители, если их еще нет
+  //       s.pX = s.pX ?? obj.x
+  //       s.pY = s.pY ?? obj.y
+  //       s.pW = s.pW ?? obj.width
+  //       s.pH = s.pH ?? obj.height
+
+  //       // if (handle) {
+  //       //   // --- ЛОГИКА РЕЗАЙЗА ---
+  //       //   if (handle.includes('t')) {
+  //       //     s.pY += deltaY
+  //       //     s.pH -= deltaY
+  //       //   }
+  //       //   if (handle.includes('b')) {
+  //       //     s.pH += deltaY
+  //       //   }
+  //       //   if (handle.includes('l')) {
+  //       //     s.pX += deltaX
+  //       //     s.pW -= deltaX
+  //       //   }
+  //       //   if (handle.includes('r')) {
+  //       //     s.pW += deltaX
+  //       //   }
+
+  //       //   return {
+  //       //     ...obj,
+  //       //     x: sceneActions.snapToGrid(s.pX),
+  //       //     y: sceneActions.snapToGrid(s.pY),
+  //       //     width: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pW)),
+  //       //     height: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pH))
+  //       //   }
+  //       // } else {
+  //       if (handle) {
+  //         // --- ЛОГИКА РЕЗАЙЗА С ЗАЩИТОЙ ОТ ИНВЕРСИИ ---
+
+  //         if (handle.includes('t')) {
+  //           // вычисляем, сколько МАКСИМУМ мы можем забрать у высоты,
+  //           // чтобы она не стала меньше GRID_SIZE
+  //           const maxDeltaY = s.pH - GRID_SIZE
+  //           // ограничиваем дельту
+  //           const clampedDeltaY = Math.min(deltaY, maxDeltaY)
+
+  //           s.pY += clampedDeltaY
+  //           s.pH -= clampedDeltaY
+  //         }
+
+  //         if (handle.includes('b')) {
+  //           s.pH += deltaY
+  //           if (s.pH < GRID_SIZE) s.pH = GRID_SIZE // защита от ухода в минус
+  //         }
+
+  //         if (handle.includes('l')) {
+  //           // точно такое же ограничение для ширины при изменении левой границы
+  //           const maxDeltaX = s.pW - GRID_SIZE
+  //           const clampedDeltaX = Math.min(deltaX, maxDeltaX)
+
+  //           s.pX += clampedDeltaX
+  //           s.pW -= clampedDeltaX
+  //         }
+
+  //         if (handle.includes('r')) {
+  //           s.pW += deltaX
+  //           if (s.pW < GRID_SIZE) s.pW = GRID_SIZE // защита от ухода в минус
+  //         }
+
+  //         return {
+  //           ...obj,
+  //           x: sceneActions.snapToGrid(s.pX),
+  //           y: sceneActions.snapToGrid(s.pY),
+  //           width: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pW)),
+  //           height: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pH))
+  //         }
+  //       } else {
+  //         // --- ЛОГИКА ПЕРЕМЕЩЕНИЯ ---
+  //         s.pX += deltaX
+  //         s.pY += deltaY
+
+  //         return {
+  //           ...obj,
+  //           x: sceneActions.snapToGrid(s.pX),
+  //           y: sceneActions.snapToGrid(s.pY)
+  //         }
+  //       }
+  //     })
+  //   )
+  // },
 
   updateObject: (id: string, deltaX: number, deltaY: number, handle: ResizeHandle = null) => {
     objects.update((objs) =>
       objs.map((obj) => {
         if (obj.id !== id) return obj
-
-        // --- ЛОГИКА ДЛЯ СТРЕЛОК ---
-        if (obj.type === 'arrow') return obj
-
-        const s = obj as any
-        // Инициализируем "точные" накопители, если их еще нет
-        s.pX = s.pX ?? obj.x
-        s.pY = s.pY ?? obj.y
-        s.pW = s.pW ?? obj.width
-        s.pH = s.pH ?? obj.height
-
-        // if (handle) {
-        //   // --- ЛОГИКА РЕЗАЙЗА ---
-        //   if (handle.includes('t')) {
-        //     s.pY += deltaY
-        //     s.pH -= deltaY
-        //   }
-        //   if (handle.includes('b')) {
-        //     s.pH += deltaY
-        //   }
-        //   if (handle.includes('l')) {
-        //     s.pX += deltaX
-        //     s.pW -= deltaX
-        //   }
-        //   if (handle.includes('r')) {
-        //     s.pW += deltaX
-        //   }
-
-        //   return {
-        //     ...obj,
-        //     x: sceneActions.snapToGrid(s.pX),
-        //     y: sceneActions.snapToGrid(s.pY),
-        //     width: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pW)),
-        //     height: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pH))
-        //   }
-        // } else {
-        if (handle) {
-          // --- ЛОГИКА РЕЗАЙЗА С ЗАЩИТОЙ ОТ ИНВЕРСИИ ---
-
-          if (handle.includes('t')) {
-            // вычисляем, сколько МАКСИМУМ мы можем забрать у высоты,
-            // чтобы она не стала меньше GRID_SIZE
-            const maxDeltaY = s.pH - GRID_SIZE
-            // ограничиваем дельту
-            const clampedDeltaY = Math.min(deltaY, maxDeltaY)
-
-            s.pY += clampedDeltaY
-            s.pH -= clampedDeltaY
-          }
-
-          if (handle.includes('b')) {
-            s.pH += deltaY
-            if (s.pH < GRID_SIZE) s.pH = GRID_SIZE // защита от ухода в минус
-          }
-
-          if (handle.includes('l')) {
-            // точно такое же ограничение для ширины при изменении левой границы
-            const maxDeltaX = s.pW - GRID_SIZE
-            const clampedDeltaX = Math.min(deltaX, maxDeltaX)
-
-            s.pX += clampedDeltaX
-            s.pW -= clampedDeltaX
-          }
-
-          if (handle.includes('r')) {
-            s.pW += deltaX
-            if (s.pW < GRID_SIZE) s.pW = GRID_SIZE // защита от ухода в минус
-          }
-
-          return {
-            ...obj,
-            x: sceneActions.snapToGrid(s.pX),
-            y: sceneActions.snapToGrid(s.pY),
-            width: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pW)),
-            height: Math.max(GRID_SIZE, sceneActions.snapToGrid(s.pH))
-          }
-        } else {
-          // --- ЛОГИКА ПЕРЕМЕЩЕНИЯ ---
-          s.pX += deltaX
-          s.pY += deltaY
-
-          return {
-            ...obj,
-            x: sceneActions.snapToGrid(s.pX),
-            y: sceneActions.snapToGrid(s.pY)
-          }
-        }
+        // Вызываем чистую математическую функцию из core
+        return transformSceneObject(obj as SceneObject, deltaX, deltaY, handle, GRID_SIZE)
       })
     )
   },
