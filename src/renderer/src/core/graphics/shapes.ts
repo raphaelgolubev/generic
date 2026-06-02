@@ -1,7 +1,10 @@
+// src/core/graphics/shapes.ts
 import { wrapText } from '../../text'
-import type { SceneObject } from '../../types'
+import type { CanvasObject, SceneObject } from '../../types'
 
-// создает путь для стикера или прямоугольника со скруглениями
+/**
+ * Создает путь Path2D для прямоугольника со скругленными углами.
+ */
 export function createRoundedRectPath(
   x: number,
   y: number,
@@ -19,39 +22,82 @@ export function createRoundedRectPath(
   return path
 }
 
+/**
+ * Вспомогательная функция для отрисовки многострочного текста по центру объекта.
+ */
+function drawObjectText(ctx: CanvasRenderingContext2D, obj: SceneObject): void {
+  ctx.save()
+  ctx.shadowColor = 'transparent'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
+
+  const fontSize = 12
+  ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", Roboto, sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+
+  const padding = 15
+  const maxWidth = Math.max(10, obj.width - padding * 2)
+  const maxHeight = obj.height - padding
+  const lineHeight = fontSize * 1.2
+
+  // Разделение текста на строки с учетом границ объекта
+  const lines = wrapText(ctx, obj.text || '', maxWidth, maxHeight, lineHeight)
+
+  // Вычисление стартовой позиции по Y для центрирования всего текстового блока
+  const totalHeight = lines.length * lineHeight
+  let startY = obj.y + (obj.height - totalHeight) / 2 + lineHeight / 2
+
+  lines.forEach((line) => {
+    if (startY < obj.y + obj.height - padding / 2) {
+      ctx.fillText(line, obj.x + obj.width / 2, startY)
+      startY += lineHeight
+    }
+  })
+
+  ctx.restore()
+}
+
+/**
+ * Отрисовывает геометрическую фигуру (прямоугольник, круг) на холсте.
+ */
 export function drawObject(
   ctx: CanvasRenderingContext2D,
-  obj: SceneObject,
-  isSelected: boolean,
-  scale: number
+  obj: CanvasObject, // Изменили тип для соответствия циклу в render.ts
+  isSelected: boolean
 ): void {
+  // Исключаем стрелки на уровне выполнения (двойная защита, так как они рисуются отдельно)
+  if (obj.type === 'arrow') return
+
+  const sceneObj = obj as SceneObject
+
   ctx.save()
 
-  // общие настройки тени
-  // ctx.shadowColor = 'rgba(23, 209, 159, 0.76)'
-  // ctx.shadowBlur = 10 / scale
-  // ctx.shadowOffsetY = 4 / scale
+  ctx.fillStyle = sceneObj.color
+  ctx.strokeStyle = sceneObj.strokeColor || '#666666'
+  ctx.lineWidth = sceneObj.strokeWidth || 3
 
-  ctx.fillStyle = obj.color
-  ctx.strokeStyle = obj.strokeColor || '#666666' // цвет выделения
-  ctx.lineWidth = obj.strokeWidth || 3
-
-  const radius = obj.type === 'rect' ? 0 : 8
-  const path = createRoundedRectPath(obj.x, obj.y, obj.width, obj.height, radius)
-
-  if (obj.type === 'rect' || obj.type === 'roundRect') {
+  // Отрисовка геометрии фигур
+  if (sceneObj.type === 'rect' || sceneObj.type === 'roundRect') {
+    const radius = sceneObj.type === 'rect' ? 0 : 8
+    const path = createRoundedRectPath(
+      sceneObj.x,
+      sceneObj.y,
+      sceneObj.width,
+      sceneObj.height,
+      radius
+    )
     ctx.fill(path)
     ctx.stroke(path)
     if (isSelected) {
-      ctx.shadowColor = 'transparent' // убираем тень для обводки
+      ctx.shadowColor = 'transparent'
     }
-  } else if (obj.type === 'circle') {
+  } else if (sceneObj.type === 'circle') {
     ctx.beginPath()
     ctx.ellipse(
-      obj.x + obj.width / 2,
-      obj.y + obj.height / 2,
-      obj.width / 2,
-      obj.height / 2,
+      sceneObj.x + sceneObj.width / 2,
+      sceneObj.y + sceneObj.height / 2,
+      sceneObj.width / 2,
+      sceneObj.height / 2,
       0,
       0,
       Math.PI * 2
@@ -63,39 +109,9 @@ export function drawObject(
     }
   }
 
-  // отрисовка текста
-  if (obj.text) {
-    ctx.save()
-    ctx.shadowColor = 'transparent'
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
-
-    const fontSize = 12
-    // ctx.font = `500 ${fontSize}px sans-serif`
-    ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", Roboto, sans-serif`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-
-    const padding = 15
-    const maxWidth = Math.max(10, obj.width - padding * 2)
-    const maxHeight = obj.height - padding // доступная высота
-    const lineHeight = fontSize * 1.2 // расстояние между строками
-
-    // получаем массив строк
-    let lines = wrapText(ctx, obj.text, maxWidth, maxHeight, lineHeight)
-
-    // вычисляем начальную координату Y, чтобы весь блок текста был по центру
-    const totalHeight = lines.length * lineHeight
-    let startY = obj.y + (obj.height - totalHeight) / 2 + lineHeight / 2
-
-    lines.forEach((line) => {
-      // доп проверка
-      if (startY < obj.y + obj.height - padding / 2) {
-        ctx.fillText(line, obj.x + obj.width / 2, startY)
-        startY += lineHeight
-      }
-    })
-
-    ctx.restore()
+  // Отрисовка текстового слоя, если текст присутствует
+  if (sceneObj.text) {
+    drawObjectText(ctx, sceneObj)
   }
 
   ctx.restore()

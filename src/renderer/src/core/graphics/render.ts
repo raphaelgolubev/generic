@@ -1,3 +1,4 @@
+// src/core/graphics/render.ts
 import { drawObject } from './shapes'
 import type { CanvasObject, Tool } from '../../types'
 import { drawGrid, drawMarquee, drawSelection } from './drawing'
@@ -11,37 +12,45 @@ export function renderScene(
   offsetX: number,
   offsetY: number,
   gridSize: number,
-  marquee: any
+  marquee: { x: number; y: number; w: number; h: number } | null
 ): void {
   const dpr = window.devicePixelRatio || 1
 
-  // сброс и очистка
+  // Сброс трансформаций холста и полная очистка экрана
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr)
 
-  // рисуем сетку
+  // рендеринг заднего плана: рисуем сетку (она сама учитывает сдвиг и зум в пикселях)
   drawGrid(ctx, scale, offsetX, offsetY, gridSize)
 
-  // трансформация для объеков
+  // рендеринг мирового слоя (Сцена): переходим в координаты объектов
+  ctx.save()
   ctx.translate(offsetX, offsetY)
   ctx.scale(scale, scale)
 
-  // отрисовка объектов
+  // отрисовка всех объектов сцены
   objects.forEach((obj) => {
     const isSelected = selectedIds.includes(obj.id)
     if (obj.type !== 'arrow') {
-      drawObject(ctx, obj, isSelected, scale)
+      drawObject(ctx, obj, isSelected)
     }
-    // если есть стрелки, их отрисовка должна быть тут
+    // место для будущей логики: drawArrow(ctx, obj, isSelected, scale)
   })
 
-  // отрисовка UI элементов (selection, marquee)
+  // отрисовка интерактивных рамок выделения вокруг выбранных объектов
   selectedIds.forEach((id) => {
     const obj = objects.find((o) => o.id === id)
-    if (obj) drawSelection(ctx, obj, scale)
+    if (obj) {
+      drawSelection(ctx, obj, scale)
+    }
   })
 
-  if (marquee) drawMarquee(ctx, marquee, scale)
+  // отрисовка динамической рамки выделения мыши (marquee)
+  if (marquee) {
+    drawMarquee(ctx, marquee, scale)
+  }
+
+  ctx.restore() // Возвращаем контекст в исходное состояние
 }
 
 /**
