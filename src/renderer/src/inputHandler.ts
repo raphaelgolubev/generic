@@ -2,6 +2,7 @@ import { get } from 'svelte/store'
 import { objects, selectedIds, scale, offsetX, offsetY, mouse } from './core/constants'
 import { sceneActions } from './scene'
 import type { Tool, ShapeType, ResizeHandle, CanvasObject } from './types'
+import { screenToWorld } from './core/maths'
 
 export class InputHandler {
   private isPanning = false
@@ -13,40 +14,8 @@ export class InputHandler {
   // публичный для доступа из компонента
   public currentMarquee: { x: number; y: number; w: number; h: number } | null = null
 
-  // вспомогательная функция для перевода экранных координат в мировые
-  screenToWorld(clientX: number, clientY: number): { x: number; y: number } {
-    const s = get(scale)
-    const ox = get(offsetX)
-    const oy = get(offsetY)
-
-    return {
-      x: (clientX - ox) / s,
-      y: (clientY - oy) / s
-    }
-  }
-
-  // функция для проверки находится ли точка (px, py) рядом с отрезком (x1,y1)-(x2,y2)
-  isNearSegment(
-    px: number,
-    py: number,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    tol: number
-  ) {
-    const l2 = (x1 - x2) ** 2 + (y1 - y2) ** 2
-    if (l2 === 0) return Math.hypot(px - x1, py - y1) < tol
-
-    let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2
-    t = Math.max(0, Math.min(1, t))
-
-    const dist = Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)))
-    return dist < tol
-  }
-
   getHitObject(clientX: number, clientY: number): CanvasObject | undefined {
-    const { x, y } = this.screenToWorld(clientX, clientY)
+    const { x, y } = screenToWorld(clientX, clientY)
     const objs = get(objects)
     const s = get(scale)
 
@@ -57,42 +26,13 @@ export class InputHandler {
     })
   }
 
-  private getSnapPoint(x: number, y: number, excludeId: string | null): { x: number; y: number } {
-    const objs = get(objects)
-    const s = get(scale)
-    const snapThreshold = 20 / s // дистанция срабатывания магнита
-
-    for (const obj of objs) {
-      if (obj.type === 'arrow' || obj.id === excludeId) continue
-
-      // точки на серединах сторон объекта
-      const points = [
-        { x: obj.x + obj.width / 2, y: obj.y }, // Top
-        { x: obj.x + obj.width, y: obj.y + obj.height / 2 }, // Right
-        { x: obj.x + obj.width / 2, y: obj.y + obj.height }, // Bottom
-        { x: obj.x, y: obj.y + obj.height / 2 } // Left
-      ]
-
-      for (const p of points) {
-        const dist = Math.sqrt((x - p.x) ** 2 + (y - p.y) ** 2)
-        if (dist < snapThreshold) return p // магнитим к объекту
-      }
-    }
-
-    // Если рядом нет объектов, магнитим к сетке
-    return {
-      x: sceneActions.snapToGrid(x),
-      y: sceneActions.snapToGrid(y)
-    }
-  }
-
   handleMouseDown(
     e: MouseEvent,
     activeTool: Tool,
     activeShape: ShapeType,
     isSpacePressed: boolean
   ) {
-    const { x, y } = this.screenToWorld(e.clientX, e.clientY)
+    const { x, y } = screenToWorld(e.clientX, e.clientY)
     const s = get(scale)
     const objs = get(objects)
     const currentSelectedIds = get(selectedIds)
@@ -161,7 +101,7 @@ export class InputHandler {
   handleMouseMove(e: MouseEvent) {
     const s = get(scale)
 
-    const { x, y } = this.screenToWorld(e.clientX, e.clientY)
+    const { x, y } = screenToWorld(e.clientX, e.clientY)
 
     mouse.set({
       mouseX: e.clientX,

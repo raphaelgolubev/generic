@@ -1,4 +1,4 @@
-import type { ArrowHead, ArrowObject } from './types'
+import type { ArrowHead, ArrowObject } from '../../types'
 
 export function drawArrow(ctx: CanvasRenderingContext2D, arrow: ArrowObject, scale: number) {
   const { start, end, color, mode } = arrow
