@@ -1,7 +1,7 @@
 import { get } from 'svelte/store'
 import { objects, selectedIds } from './core/state'
 import { GRID_SIZE } from './core/constants'
-import type { SceneObject, ArrowObject, ShapeType, ResizeHandle } from './types'
+import type { SceneObject, ArrowObject, ShapeType, ResizeHandle, TextObject } from './types'
 import { snapToGrid, transformSceneObject } from './core/maths'
 
 // логика обработки действий
@@ -40,6 +40,30 @@ export const sceneActions = {
     }
     objects.update((objs) => [...objs, newObj])
     selectedIds.set([id])
+  },
+
+  addTextObject: (x: number, y: number, initialText = 'Текст') => {
+    const id = Date.now().toString()
+    // Задаем комфортный начальный размер текстового контейнера
+    const initialWidth = GRID_SIZE * 16
+    const initialHeight = GRID_SIZE * 4
+
+    const newTextObj: TextObject = {
+      id,
+      type: 'text',
+      x: snapToGrid(x - initialWidth / 2, GRID_SIZE),
+      y: snapToGrid(y - initialHeight / 2, GRID_SIZE),
+      width: initialWidth,
+      height: initialHeight,
+      text: initialText,
+      color: '#222222', // Базовый цвет букв
+      isSelected: false
+    }
+
+    objects.update((objs) => [...objs, newTextObj])
+    selectedIds.set([id])
+
+    return id
   },
 
   addArrow: (startX: number, startY: number) => {

@@ -20,6 +20,7 @@
     if (e.key.toLowerCase() === 's') activeTool = 'shape'
     if (e.key.toLowerCase() === 'h') activeTool = 'hand'
     if (e.key.toLowerCase() === 'a') activeTool = 'arrow'
+    if (e.key.toLowerCase() === 't') activeTool = 'text'
   }
 
   function handleKeyUp(e: KeyboardEvent): void {

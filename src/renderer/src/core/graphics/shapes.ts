@@ -68,6 +68,14 @@ export function drawObject(
   // Исключаем стрелки на уровне выполнения (двойная защита, так как они рисуются отдельно)
   if (obj.type === 'arrow') return
 
+  // ПЕРЕХВАТЫВАЕМ ТЕКСТОВЫЙ ОБЪЕКТ ДО ОТРИСОВКИ ФИГУР
+  if (obj.type === 'text') {
+    if (obj.text) {
+      drawObjectText(ctx, obj as any) // наша вынесенная функция идеально отрендерит текст
+    }
+    return // выходим, чтобы под текстом не рисовался задний фон
+  }
+
   const sceneObj = obj as SceneObject
 
   ctx.save()

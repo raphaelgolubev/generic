@@ -7,7 +7,6 @@
 
   let showShapeMenu = false
 
-  // функция для смены инструмента, которая прокидывает событие наверх
   const setTool = (tool: Tool): void => {
     activeTool = tool
   }
@@ -134,9 +133,7 @@
     {/if}
 
     <button class:active={activeTool === 'shape'} on:click={() => (activeTool = 'shape')}>
-      <!-- иконка меняется в зависимости от выбранной фигуры -->
       {#if activeShape === 'rect'}
-        <!-- Иконка обычного квадрата (Rectangle) -->
         <svg
           width="20"
           height="20"
@@ -148,7 +145,6 @@
           <rect x="3" y="3" width="18" height="18" />
         </svg>
       {:else if activeShape === 'roundRect'}
-        <!-- иконка квадрата -->
         <svg
           width="20"
           height="20"
@@ -160,7 +156,6 @@
           <rect x="3" y="3" width="18" height="18" rx="2" />
         </svg>
       {:else if activeShape === 'circle'}
-        <!-- иконка круга -->
         <svg
           width="20"
           height="20"
@@ -191,9 +186,24 @@
       <path d="M5 12h14M12 5l7 7-7 7" />
     </svg>
   </button>
+
+  <!-- КНОПКА ДЛЯ ИНСТРУМЕНТА ТЕКСТ -->
+  <button class:active={activeTool === 'text'} on:click={() => setTool('text')} title="Text (T)">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+    >
+      <path d="M4 7V4h16v3M12 4v16M9 20h6" />
+    </svg>
+  </button>
 </div>
 
 <style>
+  /* Стили остаются без изменений */
   .toolbar {
     position: fixed;
     bottom: 24px;
@@ -206,7 +216,7 @@
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     border: 1px solid #e0e0e0;
-    z-index: 10; /* Чтобы быть поверх Canvas */
+    z-index: 10;
   }
 
   .tool-container {
@@ -215,8 +225,7 @@
 
   .submenu {
     position: absolute;
-    bottom: 50px; /* Над панелью */
-    /* left: 50%; */
+    bottom: 50px;
     transform: translateX(-50%);
     background: white;
     border-radius: 8px;

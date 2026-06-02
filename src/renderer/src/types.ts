@@ -1,4 +1,4 @@
-export type Tool = 'select' | 'shape' | 'arrow' | 'hand'
+export type Tool = 'select' | 'shape' | 'arrow' | 'hand' | 'text'
 
 export type ShapeType = 'rect' | 'roundRect' | 'circle'
 
@@ -10,12 +10,20 @@ interface BaseObject {
   isSelected?: boolean
 }
 
-export interface SceneObject extends BaseObject {
-  type: ShapeType
+interface BaseRectangleObject extends BaseObject {
   x: number
   y: number
   width: number
   height: number
+}
+
+export interface TextObject extends BaseRectangleObject {
+  type: 'text'
+  text: string
+}
+
+export interface SceneObject extends BaseRectangleObject {
+  type: ShapeType
   preciseX?: number
   preciseY?: number
   preciseWidth?: number
@@ -41,4 +49,4 @@ export interface ArrowObject extends BaseObject {
   orthogonalOffset?: number // смещение центральной линии от середины
 }
 
-export type CanvasObject = SceneObject | ArrowObject
+export type CanvasObject = SceneObject | ArrowObject | TextObject
