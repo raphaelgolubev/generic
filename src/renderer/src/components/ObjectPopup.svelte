@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { objects, selectedIds, isAnyBarHovered } from '../core/constants'
+  import { objects, selectedIds, isAnyBarHovered } from '../core/state'
   import type { ShapeType } from '../types'
   import type { Writable } from 'svelte/store' // Импортируем тип для сторов
   import { sceneActions } from '../scene'

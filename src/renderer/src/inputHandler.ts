@@ -1,5 +1,5 @@
 import { get } from 'svelte/store'
-import { objects, selectedIds, scale, offsetX, offsetY, mouse } from './core/constants'
+import { objects, selectedIds, scale, offsetX, offsetY, mouse } from './core/state'
 import { sceneActions } from './scene'
 import type { Tool, ShapeType, ResizeHandle, CanvasObject } from './types'
 import { screenToWorld } from './core/maths'

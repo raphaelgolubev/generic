@@ -3,15 +3,8 @@
   import type { Tool, CanvasObject, ShapeType } from '../types'
   import { renderScene } from '../core/graphics/render'
   import { inputHandler } from '../inputHandler'
-  import {
-    objects,
-    selectedIds,
-    scale,
-    offsetX,
-    offsetY,
-    GRID_SIZE,
-    theme
-  } from '../core/constants'
+  import { objects, selectedIds, scale, offsetX, offsetY } from '../core/state'
+  import { GRID_SIZE, theme } from '../core/constants'
   import { sceneActions } from '../scene'
   import ContextMenu from './ContextMenu.svelte'
   import ObjectPopup from './ObjectPopup.svelte'

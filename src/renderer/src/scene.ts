@@ -1,5 +1,6 @@
 import { get } from 'svelte/store'
-import { objects, selectedIds, GRID_SIZE } from './core/constants'
+import { objects, selectedIds } from './core/state'
+import { GRID_SIZE } from './core/constants'
 import type { SceneObject, ArrowObject, ShapeType, ResizeHandle } from './types'
 
 // логика обработки действий

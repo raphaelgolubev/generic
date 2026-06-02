@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { scale, offsetX, offsetY, isAnyBarHovered } from '../core/constants'
+  import { scale, offsetX, offsetY, isAnyBarHovered } from '../core/state'
 
   export let MAX_ZOOM: number
   export let MIN_ZOOM: number

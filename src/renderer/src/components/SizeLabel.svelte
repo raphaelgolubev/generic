@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { objects, selectedIds } from '../core/constants'
+  import { objects, selectedIds } from '../core/state'
   import type { Writable } from 'svelte/store'
 
   export let scale: Writable<number>
