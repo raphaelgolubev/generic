@@ -1,6 +1,6 @@
 export type Tool = 'select' | 'shape' | 'arrow' | 'hand' | 'text'
 
-export type ShapeType = 'rect' | 'roundRect' | 'circle'
+export type ShapeType = 'rect' | 'roundRect' | 'circle' | 'text'
 
 export type ResizeHandle = 'tl' | 'tr' | 'bl' | 'br' | 'edge' | null
 
@@ -20,6 +20,7 @@ interface BaseRectangleObject extends BaseObject {
 export interface TextObject extends BaseRectangleObject {
   type: 'text'
   text: string
+  fontSize?: number
 }
 
 export interface SceneObject extends BaseRectangleObject {
@@ -29,6 +30,8 @@ export interface SceneObject extends BaseRectangleObject {
   preciseWidth?: number
   preciseHeight?: number
   text?: string
+  textColor?: string
+  fontSize?: number
   strokeColor?: string
   strokeWidth?: number
 }
