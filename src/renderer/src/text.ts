@@ -33,7 +33,9 @@ export function wrapText(
   maxHeight: number,
   lineHeight: number
 ): string[] {
-  if (maxWidth <= 10 || maxHeight <= 10 || lineHeight <= 0) return []
+  // ИСПРАВЛЕНИЕ: Жесткая защита от отрицательной или слишком маленькой высоты контейнера
+  if (maxWidth <= 10 || maxHeight < lineHeight || lineHeight <= 0) return []
+  // if (maxWidth <= 10 || maxHeight <= 10 || lineHeight <= 0) return []
 
   const paragraphs = text.split('\n')
   const lines: string[] = []

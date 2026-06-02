@@ -37,7 +37,9 @@ function drawObjectText(ctx: CanvasRenderingContext2D, obj: SceneObject): void {
 
   const padding = 15
   const maxWidth = Math.max(10, obj.width - padding * 2)
-  const maxHeight = obj.height - padding
+  // ИСПРАВЛЕНИЕ: Защищаем от отрицательных значений, если высота объекта меньше паддинга
+  const maxHeight = Math.max(0, obj.height - padding)
+  // const maxHeight = obj.height - padding
   const lineHeight = fontSize * 1.2
 
   // Разделение текста на строки с учетом границ объекта
