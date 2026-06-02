@@ -1,8 +1,11 @@
 <script lang="ts">
   import { objects, selectedIds, isAnyBarHovered } from '../core/state'
-  import type { ShapeType } from '../types'
-  import type { Writable } from 'svelte/store' // Импортируем тип для сторов
+  import type { Writable } from 'svelte/store'
   import { sceneActions } from '../scene'
+  import { worldToScreen } from '../core/maths'
+  import type { ShapeType } from '../types'
+  import ColorPicker from './atoms/colorPicker.svelte'
+  import FontSizeSelector from './atoms/FontSizeSelector.svelte'
 
   // Принимаем сторы как пропсы
   export let scale: Writable<number>
@@ -10,15 +13,26 @@
   export let offsetY: Writable<number>
   export let isLeftMouseButtonBusy: boolean
 
-  // Реактивно ищем выбранный объект (используем $selectedIds и $objects)
+  // Находим последний выбранный объект
   $: obj = $objects.find((o) => o.id === $selectedIds[$selectedIds.length - 1])
 
-  // Магия Svelte: подписываемся на значения сторов через $scale, $offsetX, $offsetY
-  $: popupStyle = obj
-    ? `left: ${(obj.type === 'arrow' ? obj.end.x : obj.x) * $scale + $offsetX}px; ` +
-      `top: ${(obj.type === 'arrow' ? obj.end.y : obj.y) * $scale + $offsetY - 60}px; ` +
-      `transform: scale(${$scale < 0.5 ? 0.8 : 1});`
-    : ''
+  // Реактивный расчет стиля позиции поп-апа с использованием core/maths
+  $: popupStyle = (() => {
+    if (!obj) return ''
+
+    // Определяем мировые координаты опорной точки объекта для привязки поп-апа
+    // Если это стрелка — привязываемся к концу, если фигура или текст — к левому верхнему углу
+    const worldX = obj.type === 'arrow' ? obj.end.x : obj.x
+    const worldY = obj.type === 'arrow' ? obj.end.y : obj.y
+
+    // Переводим мировые координаты в экранные пиксели
+    const screenPos = worldToScreen(worldX, worldY, $scale, $offsetX, $offsetY)
+
+    // Позиционируем поп-ап на 60px выше объекта и применяем защитное масштабирование UI
+    const scaleFactor = $scale < 0.5 ? 0.8 : 1
+
+    return `left: ${screenPos.x}px; top: ${screenPos.y - 60}px; transform: scale(${scaleFactor});`
+  })()
 
   function updateArrowProperty(id: string, property: string, value: string): void {
     objects.update((objs) => objs.map((o) => (o.id === id ? { ...o, [property]: value } : o)))
@@ -34,15 +48,16 @@
     on:mouseenter={() => isAnyBarHovered.set(true)}
     on:mouseleave={() => isAnyBarHovered.set(false)}
   >
+    <!-- ИНТЕРФЕЙС ДЛЯ СТРЕЛОК -->
     {#if obj.type === 'arrow'}
       <div class="select-wrapper">
         <select
           value={obj.mode}
           on:change={(e) => updateArrowProperty(obj.id, 'mode', e.currentTarget.value)}
         >
-          <option value="straight">Straight</option>
-          <option value="orthogonal">Step</option>
-          <option value="bezier">Bezier</option>
+          <option value="straight">Прямая</option>
+          <option value="orthogonal">Ломанная</option>
+          <option value="bezier">Дуговая</option>
         </select>
         <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
           ><path
@@ -62,9 +77,9 @@
           value={obj.startHead}
           on:change={(e) => updateArrowProperty(obj.id, 'startHead', e.currentTarget.value)}
         >
-          <option value="none">Start: None</option>
-          <option value="arrow">Start: Arrow</option>
-          <option value="triangle">Start: Triangle</option>
+          <option value="none">Начало</option>
+          <option value="arrow">Начало: стрелка</option>
+          <option value="triangle">Начало: треугольник</option>
         </select>
         <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
           ><path
@@ -82,9 +97,9 @@
           value={obj.endHead}
           on:change={(e) => updateArrowProperty(obj.id, 'endHead', e.currentTarget.value)}
         >
-          <option value="none">End: None</option>
-          <option value="arrow">End: Arrow</option>
-          <option value="triangle">End: Triangle</option>
+          <option value="none">Конец</option>
+          <option value="arrow">Конец: стрелка</option>
+          <option value="triangle">Конец: треугольник</option>
         </select>
         <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
           ><path
@@ -96,38 +111,17 @@
           /></svg
         >
       </div>
-    {:else}
-      <!-- ИНТЕРФЕЙС ДЛЯ ФИГУР -->
-      <label class="color-picker-wrapper" title="Change color">
-        <input
-          type="color"
-          value={obj.color}
-          on:input={(e) => {
-            const newColor = e.currentTarget.value
-            objects.update((objs) =>
-              objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, color: newColor } : o))
-            )
-          }}
-        />
-        <span class="color-preview" style="background-color: {obj.color}"></span>
-      </label>
+    {/if}
+
+    <!-- ИНТЕРФЕЙС ДЛЯ ФИГУР -->
+    {#if obj.type === 'circle' || obj.type === 'rect' || obj.type === 'roundRect'}
+      <!-- Выбор цвета заливки -->
+      <ColorPicker {obj} title="Цвет заливки" propertyName="color" preview="color" />
 
       <div class="divider"></div>
 
       <!-- Выбор цвета рамки -->
-      <label class="color-picker-wrapper" title="Stroke color">
-        <input
-          type="color"
-          value={obj.strokeColor || '#000000'}
-          on:input={(e) => {
-            const color = e.currentTarget.value
-            objects.update((objs) =>
-              objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, strokeColor: color } : o))
-            )
-          }}
-        />
-        <span class="stroke-preview" style="border-color: {obj.strokeColor || '#000'}"></span>
-      </label>
+      <ColorPicker {obj} title="Цвет обводки" propertyName="strokeColor" preview="stroke" />
 
       <!-- Выбор толщины рамки -->
       <div class="select-wrapper width-select">
@@ -140,10 +134,10 @@
             )
           }}
         >
-          <option value="0">None</option>
-          <option value="3">Thin</option>
-          <option value="6">Medium</option>
-          <option value="9">Thick</option>
+          <option value="0">Без рамки</option>
+          <option value="3">Тонкая</option>
+          <option value="6">Средняя</option>
+          <option value="9">Толстая</option>
         </select>
         <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
           ><path
@@ -156,6 +150,7 @@
         >
       </div>
 
+      <!-- Выбор фигуры -->
       <div class="select-wrapper">
         <select
           value={obj.type}
@@ -171,9 +166,9 @@
             )
           }}
         >
-          <option value="rect">Rectangle</option>
-          <option value="roundRect">Rounded</option>
-          <option value="circle">Circle</option>
+          <option value="rect">Квадрат</option>
+          <option value="roundRect">Скругленный</option>
+          <option value="circle">Круг</option>
         </select>
         <svg class="select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"
           ><path
@@ -185,11 +180,22 @@
           /></svg
         >
       </div>
+
+      <div class="divider"></div>
+
+      <ColorPicker {obj} title="Цвет текста" propertyName="textColor" preview="color" />
+      <FontSizeSelector {obj} title="Font Size" propertyName="fontSize" />
+    {/if}
+
+    <!-- ИНТЕРФЕЙС ДЛЯ ТЕКСТА -->
+    {#if obj.type === 'text'}
+      <ColorPicker {obj} title="Цвет текста" propertyName="color" preview="color" />
+      <FontSizeSelector {obj} title="Font Size" propertyName="fontSize" />
     {/if}
 
     <div class="divider"></div>
 
-    <button class="delete-btn" on:click={() => sceneActions.deleteSelected()} title="Delete">
+    <button class="delete-btn" on:click={() => sceneActions.deleteSelected()} title="Удалить">
       <svg
         width="16"
         height="16"
@@ -225,41 +231,6 @@
     user-select: none;
     transition: transform 0.1s ease;
     transform-origin: bottom left;
-  }
-
-  .color-picker-wrapper {
-    position: relative;
-    width: 28px;
-    height: 28px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-  }
-  .color-picker-wrapper:hover {
-    background: #f5f5f5;
-  }
-  .color-picker-wrapper input[type='color'] {
-    position: absolute;
-    opacity: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-  }
-  .color-preview {
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-  }
-
-  .stroke-preview {
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    border: 2px solid #000; /* Цвет меняется через inline style */
-    background: transparent;
   }
 
   .width-select select {
