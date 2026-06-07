@@ -170,6 +170,20 @@
     </button>
   </div>
 
+  <!-- КНОПКА ДЛЯ ИНСТРУМЕНТА ТЕКСТ -->
+  <button class:active={activeTool === 'text'} on:click={() => setTool('text')} title="Text (T)">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+    >
+      <path d="M4 7V4h16v3M12 4v16M9 20h6" />
+    </svg>
+  </button>
+
   <button
     class:active={activeTool === 'arrow'}
     on:click={() => (activeTool = 'arrow')}
@@ -184,20 +198,6 @@
       stroke-width="2"
     >
       <path d="M5 12h14M12 5l7 7-7 7" />
-    </svg>
-  </button>
-
-  <!-- КНОПКА ДЛЯ ИНСТРУМЕНТА ТЕКСТ -->
-  <button class:active={activeTool === 'text'} on:click={() => setTool('text')} title="Text (T)">
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-    >
-      <path d="M4 7V4h16v3M12 4v16M9 20h6" />
     </svg>
   </button>
 </div>
@@ -216,7 +216,7 @@
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     border: 1px solid #e0e0e0;
-    z-index: 10;
+    z-index: 100;
   }
 
   .tool-container {
