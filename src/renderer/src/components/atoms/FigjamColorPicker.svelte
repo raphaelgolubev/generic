@@ -1,4 +1,3 @@
-<!-- src/renderer/src/components/atoms/FigjamColorPicker.svelte -->
 <script lang="ts">
   import { objects, selectedIds } from '../../core/state'
   import { FIGJAM_PALETTE } from '../../core/constants'
@@ -20,26 +19,33 @@
   let currentFillMode = currentStrokeWidth === 0 ? 'no-fill' : 'fill'
 
   const selectColor = (color: string): void => {
-    // Определяем, какой именно цвет записать в зависимости от режима
     let targetColor = color
     if (propertyName === 'color') {
       if (currentFillMode === 'transparent') {
-        targetColor = hexToRgba(color, 0.15) // Применяем 15% прозрачности к выбранному цвету
+        targetColor = hexToRgba(color, 0.15)
       } else if (currentFillMode === 'no-fill') {
-        currentFillMode = 'fill' // Если был выключен фон, включаем его при клике на цвет
+        currentFillMode = 'fill'
       }
     }
 
     objects.update((objs) =>
       objs.map((o) => {
         if ($selectedIds.includes(o.id)) {
-          const updated = { ...o, [propertyName]: targetColor } as any
-
-          // Страховка для возвращения обводки из режима No Fill
+          // Если мы меняем цвет заливки и выбран режим "No fill",
+          // возвращаем обводку, при условии, что это не стрелка
           if (propertyName === 'color' && currentFillMode === 'fill' && o.type !== 'arrow') {
-            updated.strokeWidth = 3
+            return {
+              ...o,
+              [propertyName]: targetColor,
+              strokeWidth: 3
+            } as CanvasObject
           }
-          return updated as CanvasObject
+
+          // В обычном случае просто обновляем динамическое свойство без использования as any
+          return {
+            ...o,
+            [propertyName]: targetColor
+          } as CanvasObject
         }
         return o
       })

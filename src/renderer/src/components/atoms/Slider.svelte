@@ -66,7 +66,7 @@
 
   /* Стилизация самого ползунка под минималистичный стиль доски */
   input[type='range'] {
-    -webkit-appearance: none;
+    /* -webkit-appearance: none; */
     width: 100px;
     height: 4px;
     background: #e0e0e0;
