@@ -41,9 +41,18 @@ export function wrapText(
   const lines: string[] = []
   const maxLines = Math.floor(maxHeight / lineHeight)
 
-  for (const paragraph of paragraphs) {
-    if (lines.length >= maxLines) break
+  if (maxLines <= 0) return []
 
+  // флаг для контроля реального обрезания текста
+  let isTruncated = false
+
+  for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+    if (lines.length >= maxLines) {
+      isTruncated = true
+      break
+    }
+
+    const paragraph = paragraphs[pIdx]
     const words = paragraph.split(' ')
     let currentLine = ''
 
@@ -56,7 +65,13 @@ export function wrapText(
       } else {
         if (currentLine !== '') {
           lines.push(currentLine)
-          if (lines.length >= maxLines) break
+          if (lines.length >= maxLines) {
+            // Проверяем: остались ли еще слова в этом абзаце ИЛИ есть ли следующие абзацы?
+            if (i < words.length - 1 || pIdx < paragraphs.length - 1) {
+              isTruncated = true
+            }
+            break
+          }
 
           currentLine = ''
           i-- // Повторяем итерацию для текущего слова на новой строке
@@ -94,13 +109,17 @@ export function wrapText(
       }
     }
 
+    // Сброс недописанной строки в конце абзаца
     if (lines.length < maxLines && currentLine) {
       lines.push(currentLine)
+    } else if (lines.length >= maxLines && currentLine) {
+      // Если лимит забит, но остался необработанный «хвост» текущего абзаца
+      isTruncated = true
     }
   }
 
-  // Пост-обработка: Добавление многоточия к последней строке, если текст обрезался по высоте
-  if (lines.length >= maxLines) {
+  // ПОСТ-ОБРАБОТКА: Добавляем многоточие ТОЛЬКО если флаг урезания взведен в true
+  if (isTruncated && lines.length > 0) {
     const lastIdx = lines.length - 1
     const lastLine = lines[lastIdx]
 
