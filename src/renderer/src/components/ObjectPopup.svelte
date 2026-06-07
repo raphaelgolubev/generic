@@ -4,8 +4,10 @@
   import { sceneActions } from '../scene'
   import { worldToScreen } from '../core/maths'
   import type { ShapeType } from '../types'
-  import ColorPicker from './atoms/colorPicker.svelte'
-  import FontSizeSelector from './atoms/FontSizeSelector.svelte'
+  import ColorPicker from './atoms/ColorPicker.svelte'
+  // import FontSizeSelector from './atoms/FontSizeSelector.svelte'
+  import Slider from './atoms/Slider.svelte'
+  import FigjamColorPicker from './atoms/FigjamColorPicker.svelte'
 
   // Принимаем сторы как пропсы
   export let scale: Writable<number>
@@ -116,7 +118,7 @@
     <!-- ИНТЕРФЕЙС ДЛЯ ФИГУР -->
     {#if obj.type === 'circle' || obj.type === 'rect' || obj.type === 'roundRect'}
       <!-- Выбор цвета заливки -->
-      <ColorPicker {obj} title="Цвет заливки" propertyName="color" preview="color" />
+      <FigjamColorPicker {obj} title="Background color" propertyName="color" preview="color" />
 
       <div class="divider"></div>
 
@@ -184,13 +186,29 @@
       <div class="divider"></div>
 
       <ColorPicker {obj} title="Цвет текста" propertyName="textColor" preview="color" />
-      <FontSizeSelector {obj} title="Font Size" propertyName="fontSize" />
+      <Slider
+        {obj}
+        title="Font"
+        propertyName="fontSize"
+        min={12}
+        max={80}
+        step={1}
+        defaultValue={14}
+      />
     {/if}
 
     <!-- ИНТЕРФЕЙС ДЛЯ ТЕКСТА -->
     {#if obj.type === 'text'}
       <ColorPicker {obj} title="Цвет текста" propertyName="color" preview="color" />
-      <FontSizeSelector {obj} title="Font Size" propertyName="fontSize" />
+      <Slider
+        {obj}
+        title="Font"
+        propertyName="fontSize"
+        min={12}
+        max={80}
+        step={1}
+        defaultValue={14}
+      />
     {/if}
 
     <div class="divider"></div>
