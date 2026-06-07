@@ -76,7 +76,7 @@ export class InputHandler {
     } else if (activeTool === 'arrow') {
       return
     } else if (activeTool === 'text') {
-      sceneActions.addTextObject(x, y, 'Дважды кликните для ввода')
+      sceneActions.addObject(x, y, 'text', '#000')
     }
   }
 

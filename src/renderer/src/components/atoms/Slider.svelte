@@ -1,10 +1,10 @@
 <script lang="ts">
   import { objects, selectedIds } from '../../core/state'
-  import type { CanvasObject, SceneObject, TextObject } from '../../types'
+  import type { CanvasObject, SceneObject } from '../../types'
 
   export let obj: CanvasObject
   export let title: string
-  export let propertyName: keyof SceneObject | keyof TextObject
+  export let propertyName: keyof SceneObject
 
   // Диапазон значений ползунка (пропсы с дефолтными значениями)
   export let min = 1

@@ -4,8 +4,6 @@
   import { sceneActions } from '../scene'
   import { worldToScreen } from '../core/maths'
   import type { ShapeType } from '../types'
-  import ColorPicker from './atoms/ColorPicker.svelte'
-  // import FontSizeSelector from './atoms/FontSizeSelector.svelte'
   import Slider from './atoms/Slider.svelte'
   import FigjamColorPicker from './atoms/FigjamColorPicker.svelte'
 
@@ -118,12 +116,12 @@
     <!-- ИНТЕРФЕЙС ДЛЯ ФИГУР -->
     {#if obj.type === 'circle' || obj.type === 'rect' || obj.type === 'roundRect'}
       <!-- Выбор цвета заливки -->
-      <FigjamColorPicker {obj} title="Background color" propertyName="color" preview="color" />
+      <FigjamColorPicker {obj} title="Цвет заливки" propertyName="color" preview="color" />
 
       <div class="divider"></div>
 
       <!-- Выбор цвета рамки -->
-      <ColorPicker {obj} title="Цвет обводки" propertyName="strokeColor" preview="stroke" />
+      <FigjamColorPicker {obj} title="Цвет обводки" propertyName="strokeColor" preview="stroke" />
 
       <!-- Выбор толщины рамки -->
       <div class="select-wrapper width-select">
@@ -185,7 +183,7 @@
 
       <div class="divider"></div>
 
-      <ColorPicker {obj} title="Цвет текста" propertyName="textColor" preview="color" />
+      <FigjamColorPicker {obj} title="Цвет текста" propertyName="textColor" preview="color" />
       <Slider
         {obj}
         title="Font"
@@ -199,7 +197,7 @@
 
     <!-- ИНТЕРФЕЙС ДЛЯ ТЕКСТА -->
     {#if obj.type === 'text'}
-      <ColorPicker {obj} title="Цвет текста" propertyName="color" preview="color" />
+      <FigjamColorPicker {obj} title="Цвет текста" propertyName="textColor" preview="color" />
       <Slider
         {obj}
         title="Font"

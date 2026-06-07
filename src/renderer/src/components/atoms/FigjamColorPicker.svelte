@@ -1,13 +1,12 @@
 <script lang="ts">
   import { objects, selectedIds } from '../../core/state'
   import { FIGJAM_PALETTE } from '../../core/constants'
-  import type { CanvasObject, SceneObject, ArrowObject, TextObject } from '../../types'
+  import type { CanvasObject, SceneObject, ArrowObject } from '../../types'
   import { hexToRgba } from '../../core/maths'
 
   export let obj: CanvasObject
   export let title: string
-  // Исправлено: убрали any, заменили на строгое объединение доступных ключей
-  export let propertyName: keyof SceneObject | keyof ArrowObject | keyof TextObject
+  export let propertyName: keyof SceneObject | keyof ArrowObject
   export let preview: 'color' | 'stroke'
 
   let isOpen = false
@@ -76,7 +75,6 @@
     )
   }
 
-  // Добавлен возвращаемый тип : void
   function handleWindowMouseDown(e: MouseEvent): void {
     if (isOpen && !(e.target as HTMLElement).closest('.figjam-color-picker-container')) {
       isOpen = false
@@ -160,7 +158,6 @@
 </div>
 
 <style>
-  /* Стили остаются без изменений */
   .figjam-color-picker-container {
     position: relative;
     display: inline-flex;
@@ -195,7 +192,6 @@
     flex-direction: column;
     gap: 12px;
     z-index: 3000;
-    /* width: 250px; */
   }
   .fill-modes {
     display: flex;
@@ -303,7 +299,6 @@
         red 360deg
       ),
       #c4c4c4;
-    /* border: 1px solid rgba(255, 255, 255, 0.2); */
     position: relative;
     border-radius: 50%;
     border: none;

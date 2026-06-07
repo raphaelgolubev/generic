@@ -17,12 +17,6 @@ interface BaseRectangleObject extends BaseObject {
   height: number
 }
 
-export interface TextObject extends BaseRectangleObject {
-  type: 'text'
-  text: string
-  fontSize?: number
-}
-
 export interface SceneObject extends BaseRectangleObject {
   type: ShapeType
   preciseX?: number
@@ -52,4 +46,4 @@ export interface ArrowObject extends BaseObject {
   orthogonalOffset?: number // смещение центральной линии от середины
 }
 
-export type CanvasObject = SceneObject | ArrowObject | TextObject
+export type CanvasObject = SceneObject | ArrowObject

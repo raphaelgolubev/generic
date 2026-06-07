@@ -28,14 +28,14 @@ export function createRoundedRectPath(
 function drawObjectText(ctx: CanvasRenderingContext2D, obj: SceneObject): void {
   ctx.save()
   ctx.shadowColor = 'transparent'
-  ctx.fillStyle = obj.type === 'text' ? obj.color : obj.textColor //'rgba(0, 0, 0, 0.8)'
+  ctx.fillStyle = obj.textColor //'rgba(0, 0, 0, 0.8)'
 
   const fontSize = obj.fontSize || 12
   ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", Roboto, sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
-  const padding = 15
+  const padding = obj.type === 'text' ? 0 : 15
   const maxWidth = Math.max(10, obj.width - padding * 2)
   // ИСПРАВЛЕНИЕ: Защищаем от отрицательных значений, если высота объекта меньше паддинга
   const maxHeight = Math.max(0, obj.height - padding)

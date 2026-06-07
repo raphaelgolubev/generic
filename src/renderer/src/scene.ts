@@ -1,7 +1,7 @@
 import { get } from 'svelte/store'
 import { objects, selectedIds } from './core/state'
 import { GRID_SIZE } from './core/constants'
-import type { SceneObject, ArrowObject, ShapeType, ResizeHandle, TextObject } from './types'
+import type { SceneObject, ArrowObject, ShapeType, ResizeHandle } from './types'
 import { snapToGrid, transformSceneObject } from './core/maths'
 
 // логика обработки действий
@@ -23,15 +23,16 @@ export const sceneActions = {
 
   addObject: (x: number, y: number, type: ShapeType, color: string) => {
     const id = Date.now().toString()
-    const initialSize = GRID_SIZE * 8
-    const offset = initialSize / 2
+    const initialWidth = type === 'text' ? GRID_SIZE * 3 : GRID_SIZE * 8
+    const initialHeight = type === 'text' ? GRID_SIZE * 2 : GRID_SIZE * 8
+
     const newObj: SceneObject = {
       id,
       type,
-      x: snapToGrid(x - offset, GRID_SIZE),
-      y: snapToGrid(y - offset, GRID_SIZE),
-      width: initialSize,
-      height: initialSize,
+      x: snapToGrid(x - initialWidth / 2, GRID_SIZE),
+      y: snapToGrid(y - initialHeight / 2, GRID_SIZE),
+      width: initialWidth,
+      height: initialHeight,
       color,
       text: 'Text',
       textColor: 'rgba(0, 0, 0, 0.8)',
@@ -44,30 +45,30 @@ export const sceneActions = {
     selectedIds.set([id])
   },
 
-  addTextObject: (x: number, y: number, initialText = 'Текст') => {
-    const id = Date.now().toString()
-    // Задаем комфортный начальный размер текстового контейнера
-    const initialWidth = GRID_SIZE * 16
-    const initialHeight = GRID_SIZE * 4
+  // addTextObject: (x: number, y: number, initialText = 'Текст') => {
+  //   const id = Date.now().toString()
+  //   // Задаем комфортный начальный размер текстового контейнера
+  //   const initialWidth = GRID_SIZE * 16
+  //   const initialHeight = GRID_SIZE * 4
 
-    const newTextObj: TextObject = {
-      id,
-      type: 'text',
-      x: snapToGrid(x - initialWidth / 2, GRID_SIZE),
-      y: snapToGrid(y - initialHeight / 2, GRID_SIZE),
-      width: initialWidth,
-      height: initialHeight,
-      text: initialText,
-      fontSize: 12,
-      color: 'rgba(0, 0, 0, 0.8)', // Базовый цвет букв
-      isSelected: false
-    }
+  //   const newTextObj: TextObject = {
+  //     id,
+  //     type: 'text',
+  //     x: snapToGrid(x - initialWidth / 2, GRID_SIZE),
+  //     y: snapToGrid(y - initialHeight / 2, GRID_SIZE),
+  //     width: initialWidth,
+  //     height: initialHeight,
+  //     text: initialText,
+  //     fontSize: 12,
+  //     color: 'rgba(0, 0, 0, 0.8)', // Базовый цвет букв
+  //     isSelected: false
+  //   }
 
-    objects.update((objs) => [...objs, newTextObj])
-    selectedIds.set([id])
+  //   objects.update((objs) => [...objs, newTextObj])
+  //   selectedIds.set([id])
 
-    return id
-  },
+  //   return id
+  // },
 
   addArrow: (startX: number, startY: number) => {
     const id = Date.now().toString()
