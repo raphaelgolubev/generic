@@ -1,16 +1,20 @@
 <script lang="ts">
   import { objects, selectedIds } from '../../core/state'
+  import { calculateAutoTextDimensions } from '../../core/maths'
   import type { CanvasObject, SceneObject } from '../../types'
 
   export let obj: CanvasObject
   export let title: string
   export let propertyName: keyof SceneObject
 
-  // Диапазон значений ползунка (пропсы с дефолтными значениями)
+  // Диапазон значений ползунка
   export let min = 1
   export let max = 100
   export let step = 1
   export let defaultValue = 16
+
+  // Создаем типизированную ссылку на объект, если это SceneObject
+  $: sceneObj = obj.type !== 'arrow' ? (obj as SceneObject) : null
 </script>
 
 <div class="slider-wrapper" {title}>
@@ -21,19 +25,42 @@
     {min}
     {max}
     {step}
-    /* Считываем текущее значение свойства из объекта */
-    value={obj[propertyName] ?? defaultValue}
-    /* Изменяем стейт в реальном времени при движении мыши */
+    /* Строка 25: Безопасно считываем значение без any */
+    value={sceneObj ? (sceneObj[propertyName] ?? defaultValue) : defaultValue}
     on:input={(e) => {
       const value = parseInt(e.currentTarget.value, 10)
+
       objects.update((objs) =>
-        objs.map((o) => ($selectedIds.includes(o.id) ? { ...o, [propertyName]: value } : o))
+        objs.map((o) => {
+          if ($selectedIds.includes(o.id)) {
+            // Строка 33: Создаем новый объект, расширяя текущий, без as any
+            const updated: CanvasObject = { ...o, [propertyName]: value }
+
+            // Строка 40: Проверяем авторесайз через безопасное приведение к SceneObject
+            if (propertyName === 'fontSize' && o.type !== 'arrow' && 'text' in o && o.text) {
+              const canvas = document.querySelector('canvas')
+              const canvasCtx = canvas?.getContext('2d')
+              if (canvasCtx) {
+                const currentText = (o as SceneObject).text || ''
+                const dims = calculateAutoTextDimensions(canvasCtx, currentText, value)
+
+                // Перезаписываем габариты в рамках того же типа
+                const target = updated as SceneObject
+                target.width = dims.width
+                target.height = dims.height
+              }
+            }
+            return updated
+          }
+          return o
+        })
       )
     }}
   />
 
-  <!-- Отображаем текущее числовое значение справа от ползунка -->
-  <span class="slider-value">{obj[propertyName] ?? defaultValue}px</span>
+  <span class="slider-value">
+    {sceneObj ? (sceneObj[propertyName] ?? defaultValue) : defaultValue}px
+  </span>
 </div>
 
 <style>

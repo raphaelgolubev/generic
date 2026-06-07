@@ -1,6 +1,7 @@
 import { get } from 'svelte/store'
 import { offsetX, offsetY, scale } from './state'
 import type { CanvasObject, ResizeHandle, SceneObject } from '../types'
+import { GRID_SIZE } from './constants'
 
 export function screenToWorld(clientX: number, clientY: number): { x: number; y: number } {
   const s = get(scale)
@@ -176,4 +177,90 @@ export function hexToRgba(hex: string, alpha: number): string {
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+// src/core/maths.ts
+
+/**
+ * Рассчитывает идеальные размеры (ширину и высоту) для текстового блока на основе содержимого.
+ * @param ctx Контекст Canvas для измерения ширины букв.
+ * @param text Введенный текст.
+ * @param fontSize Текущий размер шрифта.
+ * @param padding Внутренние отступы блока.
+ * @param maxAutoWidth Максимальная ширина, после которой текст начинает переноситься на новую строку.
+ */
+export function calculateAutoTextDimensions(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  fontSize: number,
+  padding = 15,
+  maxAutoWidth = 350
+): { width: number; height: number } {
+  ctx.save()
+  // Устанавливаем актуальный шрифт холста для точного замера пикселей
+  ctx.font = `500 ${fontSize}px "Inter", "Segoe UI", Roboto, sans-serif`
+
+  const lineHeight = fontSize * 1.2
+  const paragraphs = text.split('\n')
+
+  let maxLineWidth = 0
+  let totalLinesCount = 0
+
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(' ')
+    let currentLine = ''
+    let paragraphLinesCount = 0
+
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i]
+      const testLine = currentLine ? `${currentLine} ${word}` : word
+      const testWidth = ctx.measureText(testLine).width
+
+      // Если строка с новым словом влезает в лимит maxAutoWidth
+      if (testWidth <= maxAutoWidth) {
+        currentLine = testLine
+        maxLineWidth = Math.max(maxLineWidth, testWidth)
+      } else {
+        // Если в текущей строке уже что-то было, переносим слово на следующую
+        if (currentLine !== '') {
+          paragraphLinesCount++
+          currentLine = ''
+          i-- // Пробуем это же слово на новой строке
+        } else {
+          // Одиночное слово длиннее, чем maxAutoWidth — растягиваем блок под это слово
+          maxLineWidth = Math.max(maxLineWidth, testWidth)
+          paragraphLinesCount++
+          currentLine = ''
+        }
+      }
+    }
+
+    // Учитываем последнюю (или единственную) строку абзаца
+    if (currentLine) {
+      paragraphLinesCount++
+      maxLineWidth = Math.max(maxLineWidth, ctx.measureText(currentLine).width)
+    }
+
+    // Если абзац был пустой (двойной Enter), он всё равно занимает одну строку по высоте
+    totalLinesCount += Math.max(1, paragraphLinesCount)
+  }
+
+  ctx.restore()
+
+  // Вычисляем чистые размеры
+  const rawWidth = Math.ceil(maxLineWidth + padding * 2)
+  const rawHeight = Math.ceil(totalLinesCount * lineHeight + padding)
+
+  // ИСПРАВЛЕНИЕ: Округляем до ближайшего шага сетки (GRID_SIZE = 10)
+  // Используем Math.max(GRID_SIZE, ...), чтобы пустой текст не схлопнулся в 0
+  return {
+    width: Math.max(GRID_SIZE, snapToGrid(rawWidth, GRID_SIZE)),
+    height: Math.max(GRID_SIZE, snapToGrid(rawHeight, GRID_SIZE))
+  }
+
+  // // Итоговые размеры с учетом внутренних отступов (padding)
+  // return {
+  //   width: Math.ceil(maxLineWidth + padding * 2),
+  //   height: Math.ceil(totalLinesCount * lineHeight + padding)
+  // }
 }

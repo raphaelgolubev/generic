@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte'
-  import type { Tool, CanvasObject, ShapeType } from '../types'
+  import type { Tool, CanvasObject, ShapeType, SceneObject } from '../types'
   import {
     renderScene,
     getCanvasCursorClass,
@@ -13,7 +13,7 @@
   import ContextMenu from './ContextMenu.svelte'
   import ObjectPopup from './ObjectPopup.svelte'
   import SizeLabel from './SizeLabel.svelte'
-  import { worldToScreen } from '../core/maths'
+  import { calculateAutoTextDimensions, worldToScreen } from '../core/maths'
 
   export let activeTool: Tool
   export let activeShape: ShapeType
@@ -196,6 +196,45 @@
           bind:value={obj.text}
           placeholder="Напишите что-нибудь..."
           on:blur={stopEditing}
+          on:input={() => {
+            // const targetObj = obj as SceneObject
+            // const currentFontSize = targetObj.fontSize || 12
+            // const currentText = targetObj.text || ''
+            // const padding = obj.type === 'text' ? 0 : 15
+
+            // // Рассчитываем габариты текстового блока
+            // const dims = calculateAutoTextDimensions(ctx, currentText, currentFontSize, padding)
+
+            // objects.update((objs) =>
+            //   objs.map((o) =>
+            //     o.id === targetObj.id ? { ...o, width: dims.width, height: dims.height } : o
+            //   )
+            // )
+            const targetObj = obj as SceneObject
+            const currentFontSize = targetObj.fontSize || 12
+            const currentText = targetObj.text || ''
+            const padding = obj.type === 'text' ? 0 : 15
+
+            // 1. Вычисляем идеальный минимальный размер для текста по сетке
+            const dims = calculateAutoTextDimensions(ctx, currentText, currentFontSize, padding)
+
+            // 2. Если это фигура (не чистый текст), защищаем её изначальные размеры от уменьшения
+            let finalWidth = dims.width
+            let finalHeight = dims.height
+
+            if (targetObj.type !== 'text') {
+              // Если текст маленький, фигура сохранит свой текущий (изначальный) размер.
+              // Если текст переполнит фигуру, finalWidth/Height начнут расти вместе с ним.
+              finalWidth = Math.max(targetObj.width, dims.width)
+              finalHeight = Math.max(targetObj.height, dims.height)
+            }
+
+            objects.update((objs) =>
+              objs.map((o) =>
+                o.id === targetObj.id ? { ...o, width: finalWidth, height: finalHeight } : o
+              )
+            )
+          }}
           on:keydown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
