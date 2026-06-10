@@ -253,14 +253,13 @@ export function calculateAutoTextDimensions(
 
   // ИСПРАВЛЕНИЕ: Округляем до ближайшего шага сетки (GRID_SIZE = 10)
   // Используем Math.max(GRID_SIZE, ...), чтобы пустой текст не схлопнулся в 0
-  return {
-    width: Math.max(GRID_SIZE, snapToGrid(rawWidth, GRID_SIZE)),
-    height: Math.max(GRID_SIZE, snapToGrid(rawHeight, GRID_SIZE))
-  }
-
-  // // Итоговые размеры с учетом внутренних отступов (padding)
   // return {
-  //   width: Math.ceil(maxLineWidth + padding * 2),
-  //   height: Math.ceil(totalLinesCount * lineHeight + padding)
+  //   width: Math.max(GRID_SIZE, snapToGrid(rawWidth, GRID_SIZE)),
+  //   height: Math.max(GRID_SIZE, snapToGrid(rawHeight, GRID_SIZE))
   // }
+
+  return {
+    width: rawWidth,
+    height: rawHeight
+  }
 }
